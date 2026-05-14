@@ -1,0 +1,33 @@
+import { StyleSheet, Text, View } from 'react-native';
+
+import { curvao } from '@/src/theme/curvaoTheme';
+
+export function StatPill({ label, value }: { label: string; value: string | number }) {
+  return (
+    <View style={styles.pill}>
+      <Text style={styles.value}>{value}</Text>
+      <Text style={styles.label}>{label}</Text>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  pill: {
+    backgroundColor: curvao.colors.surface,
+    borderColor: curvao.colors.border,
+    borderRadius: curvao.radius.md,
+    borderWidth: 1,
+    minWidth: 104,
+    padding: 12,
+  },
+  value: {
+    color: curvao.colors.gold,
+    fontSize: 20,
+    fontWeight: '800',
+  },
+  label: {
+    color: curvao.colors.muted,
+    fontSize: 12,
+    marginTop: 2,
+  },
+});
