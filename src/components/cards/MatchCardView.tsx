@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View, type ImageSourcePropType } from 'react-native';
-import Animated, { interpolate, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import Animated, { Easing, interpolate, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
 import { ClubCrest } from '@/src/components/cards/ClubCrest';
 import { MatchCardBack } from '@/src/components/cards/MatchCardBack';
@@ -66,9 +66,7 @@ export function MatchCardView({ card, compact }: MatchCardViewProps) {
     const rotateY = `${interpolate(flipProgress.value, [0, 1], [0, 180])}deg`;
 
     return {
-      opacity: flipProgress.value > 0.5 ? 0 : 1,
       transform: [{ perspective: 1200 }, { rotateY }],
-      zIndex: flipProgress.value > 0.5 ? 0 : 2,
     };
   });
 
@@ -76,9 +74,7 @@ export function MatchCardView({ card, compact }: MatchCardViewProps) {
     const rotateY = `${interpolate(flipProgress.value, [0, 1], [180, 360])}deg`;
 
     return {
-      opacity: flipProgress.value > 0.5 ? 1 : 0,
       transform: [{ perspective: 1200 }, { rotateY }],
-      zIndex: flipProgress.value > 0.5 ? 2 : 0,
     };
   });
 
@@ -89,7 +85,10 @@ export function MatchCardView({ card, compact }: MatchCardViewProps) {
 
     const next = !flipped;
     setFlipped(next);
-    flipProgress.value = withTiming(next ? 1 : 0, { duration: 650 });
+    flipProgress.value = withTiming(next ? 1 : 0, {
+      duration: 720,
+      easing: Easing.inOut(Easing.cubic),
+    });
   }
 
   if (!canFlip) {
@@ -125,6 +124,7 @@ function MatchCardFront({ card, compact }: MatchCardViewProps) {
 
   return (
     <View style={[styles.card, compact && styles.cardCompact]}>
+      <View style={styles.cardClippedContent}>
       <PlayerStandardBackgroundSvg
         bottomFade
         clipId="matchCardInnerClip"
@@ -173,7 +173,7 @@ function MatchCardFront({ card, compact }: MatchCardViewProps) {
           <Text style={styles.editionValue}>{formatEdition(card).replace('#', '#')}</Text>
         </View>
       ) : null}
-
+      </View>
       <View pointerEvents="none" style={styles.frame}>
         <PlayerStandardFrameSvg layer="overlay" rarity={card.rarity} />
       </View>
@@ -216,6 +216,7 @@ function MatchInfo({ compact, icon, label }: { compact?: boolean; icon: keyof ty
 const styles = StyleSheet.create({
   flipPressable: {
     aspectRatio: 987 / 1414.5,
+    overflow: 'visible',
     position: 'relative',
     width: '100%',
   },
@@ -224,7 +225,7 @@ const styles = StyleSheet.create({
     backfaceVisibility: 'hidden',
     backgroundColor: 'transparent',
     borderRadius: 10,
-    overflow: 'hidden',
+    overflow: 'visible',
   },
   flipBackFace: {
     backgroundColor: '#06100c',
@@ -233,12 +234,18 @@ const styles = StyleSheet.create({
     aspectRatio: 987 / 1414.5,
     backgroundColor: 'transparent',
     borderRadius: 10,
-    overflow: 'hidden',
+    overflow: 'visible',
     position: 'relative',
     width: '100%',
   },
   cardCompact: {
     borderRadius: 8,
+  },
+  cardClippedContent: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'transparent',
+    borderRadius: 10,
+    overflow: 'hidden',
   },
   header: {
     alignItems: 'center',
@@ -420,6 +427,7 @@ const styles = StyleSheet.create({
   },
   frame: {
     ...StyleSheet.absoluteFillObject,
+    overflow: 'visible',
     zIndex: 30,
   },
 });

@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import type { ReactNode } from 'react';
 import { StyleSheet, Text, View, type ImageSourcePropType } from 'react-native';
+import Svg, { ClipPath, Defs, Image as SvgImage, Path } from 'react-native-svg';
 
 import { ClubCrest } from '@/src/components/cards/ClubCrest';
 import { PlayerStandardFrameSvg } from '@/src/components/cards/PlayerStandardFrameSvg';
@@ -9,6 +10,11 @@ import { formatEdition, formatOrigin, formatRarity, getCardRelations } from '@/s
 import { getPocketBaseFileUrl } from '@/src/services/pocketbase';
 import { curvao } from '@/src/theme/curvaoTheme';
 import type { Club, Rarity, UserCard } from '@/src/types/models';
+
+const cardBackBackgroundSource = require('@/assets/cards/player_standard_v2_bg--back.png');
+
+const BACK_INNER_BORDER_PATH =
+  'M202.834 32H493.206H499.794H790.166L806.167 48.2849H908.291L961 101.9293V1294.08L901.702 1354.43H593.918L561.916 1387H498.853H494.147H431.084L399.082 1354.43H91.2979L32 1294.08V101.9293L84.7092 48.2849H186.833L202.834 32Z';
 
 const rarityAccent: Record<Rarity, { green: string; gold: string; border: string }> = {
   standard: { green: '#8fa79b', gold: '#bd9947', border: '#8fa79b' },
@@ -70,10 +76,32 @@ export function MatchCardBack({ card }: { card: UserCard }) {
   ];
   const visibleHistoryEvents = historyEvents.slice(0, HISTORY_PREVIEW_LIMIT);
   const hiddenHistoryCount = Math.max(historyEvents.length - visibleHistoryEvents.length, 0);
+  const backgroundClipId = `matchCardBackBackgroundClip-${card.id}-${card.rarity}`;
 
   return (
     <View style={[styles.back, { borderColor: accent.border }]}> 
+      <View pointerEvents="none" style={styles.frameShadowLayer}>
+        <PlayerStandardFrameSvg layer="shadow" rarity={card.rarity} />
+      </View>
       <View style={styles.backContent}>
+        <View pointerEvents="none" style={styles.backBackground}>
+          <Svg height="100%" viewBox="0 0 992 1419.5" width="100%">
+            <Defs>
+              <ClipPath id={backgroundClipId}>
+                <Path d={BACK_INNER_BORDER_PATH} />
+              </ClipPath>
+            </Defs>
+            <SvgImage
+              clipPath={`url(#${backgroundClipId})`}
+              height="1419.5"
+              href={cardBackBackgroundSource}
+              preserveAspectRatio="xMidYMid slice"
+              width="992"
+              x="0"
+              y="0"
+            />
+          </Svg>
+        </View>
         <View style={[styles.heroPanel, { borderColor: accent.gold }]}> 
           <View style={styles.crestPair}>
             <ClubCrest size={38} source={getCrestSource(homeClub)} />
@@ -226,15 +254,22 @@ function FooterBlock({ label, value, accent }: { label: string; value: string; a
 const styles = StyleSheet.create({
   back: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#06100c',
+    backgroundColor: 'transparent',
     borderRadius: 10,
-    overflow: 'hidden',
+    overflow: 'visible',
   },
   backContent: {
     ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'transparent',
+    overflow: 'hidden',
     paddingBottom: 38,
     paddingHorizontal: 30,
     paddingTop: 30,
+    zIndex: 5,
+  },
+  backBackground: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 0,
   },
   heroPanel: {
     alignItems: 'center',
@@ -244,6 +279,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 10,
     padding: 10,
+    zIndex: 2,
   },
   crestPair: {
     alignItems: 'center',
@@ -310,12 +346,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
     marginTop: 8,
+    zIndex: 2,
   },
   twoColumnSmall: {
     flex: 0.9,
     flexDirection: 'row',
     gap: 8,
     marginTop: 8,
+    zIndex: 2,
   },
   infoPanel: {
     backgroundColor: 'rgba(2,6,5,0.62)',
@@ -464,6 +502,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 10,
     paddingVertical: 8,
+    zIndex: 2,
   },
   footerBlock: {
     gap: 3,
@@ -483,8 +522,14 @@ const styles = StyleSheet.create({
     marginBottom: 0,
     paddingBottom: 0,
   },
+  frameShadowLayer: {
+    ...StyleSheet.absoluteFillObject,
+    overflow: 'visible',
+    zIndex: 1,
+  },
   frameLayer: {
     ...StyleSheet.absoluteFillObject,
+    overflow: 'visible',
     zIndex: 20,
   },
 });

@@ -1,8 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { StyleSheet, Text, View, type ImageSourcePropType } from 'react-native';
+import Svg, { ClipPath, Defs, Image as SvgImage, LinearGradient, Path, Stop } from 'react-native-svg';
 
 import { ClubCrest } from '@/src/components/cards/ClubCrest';
-import { PlayerStandardBackgroundSvg } from '@/src/components/cards/PlayerStandardBackgroundSvg';
 import { PlayerStandardFrameSvg } from '@/src/components/cards/PlayerStandardFrameSvg';
 import { getClubCrestSource } from '@/src/services/cardAssetService';
 import { getCardRelations } from '@/src/services/cardTemplateService';
@@ -11,6 +11,9 @@ import { curvao } from '@/src/theme/curvaoTheme';
 import type { UserCard } from '@/src/types/models';
 
 const olympiastadionImage = require('@/assets/cards/olympiastadion_reference.png');
+
+const STADIUM_INNER_BORDER_PATH =
+  'M202.834 32H493.206H499.794H790.166L806.167 48.2849H908.291L961 101.9293V1294.08L901.702 1354.43H593.918L561.916 1387H498.853H494.147H431.084L399.082 1354.43H91.2979L32 1294.08V101.9293L84.7092 48.2849H186.833L202.834 32Z';
 
 function formatVisitDate(value?: string) {
   if (!value) {
@@ -54,54 +57,79 @@ export function StadiumCardView({ card, compact }: { card: UserCard; compact?: b
   const stadiumImageSource: ImageSourcePropType = stadiumImageUrl ? { uri: stadiumImageUrl } : olympiastadionImage;
   const showDetails = !compact;
 
+  const backgroundClipId = `stadiumCardBackgroundClip-${card.id}-${card.rarity}`;
+  const backgroundOverlayId = `stadiumCardBackgroundOverlay-${card.id}-${card.rarity}`;
+
   return (
     <View style={[styles.card, compact && styles.cardCompact]}>
-      <PlayerStandardBackgroundSvg
-        bottomFade
-        clipId="stadiumCardInnerClip"
-        source={stadiumImageSource}
-        topFade
-      />
+      <View style={[styles.cardClippedContent, compact && styles.cardClippedContentCompact]}>
+        <View pointerEvents="none" style={styles.stadiumBackgroundImage}>
+          <Svg height="100%" viewBox="0 0 992 1419.5" width="100%">
+            <Defs>
+              <ClipPath id={backgroundClipId}>
+                <Path d={STADIUM_INNER_BORDER_PATH} />
+              </ClipPath>
+              <LinearGradient gradientUnits="userSpaceOnUse" id={backgroundOverlayId} x1="0" x2="0" y1="32" y2="1387">
+                <Stop offset="0" stopColor="#000000" stopOpacity="1" />
+                <Stop offset="0.3" stopColor="#000000" stopOpacity="0.5" />
+                <Stop offset="0.5" stopColor="#000000" stopOpacity="0" />
+                <Stop offset="0.6" stopColor="#000000" stopOpacity="0.5" />
+                <Stop offset="1" stopColor="#000000" stopOpacity="1" />
+              </LinearGradient>
+            </Defs>
+            <SvgImage
+              clipPath={`url(#${backgroundClipId})`}
+              height="1419.5"
+              href={stadiumImageSource}
+              preserveAspectRatio="xMidYMid slice"
+              width="992"
+              x="0"
+              y="0"
+            />
+            <Path d={STADIUM_INNER_BORDER_PATH} fill={`url(#${backgroundOverlayId})`} />
+          </Svg>
+        </View>
 
-      <View style={[styles.titleBlock, compact && styles.titleBlockCompact]}>
-        <Text adjustsFontSizeToFit numberOfLines={1} style={[styles.stadiumName, compact && styles.stadiumNameCompact]}>
-          {displayStadiumName.toUpperCase()}
-        </Text>
-        <Text numberOfLines={1} style={[styles.city, compact && styles.cityCompact]}>
-          {city.toUpperCase()}
-        </Text>
-      </View>
+        <View style={[styles.titleBlock, compact && styles.titleBlockCompact]}>
+          <Text adjustsFontSizeToFit numberOfLines={1} style={[styles.stadiumName, compact && styles.stadiumNameCompact]}>
+            {displayStadiumName.toUpperCase()}
+          </Text>
+          <Text numberOfLines={1} style={[styles.city, compact && styles.cityCompact]}>
+            {city.toUpperCase()}
+          </Text>
+        </View>
 
-      <View style={[styles.clubBlock, compact && styles.clubBlockCompact]}>
-        {showDetails ? <ClubCrest size={46} source={crestSource} /> : null}
-        <Text numberOfLines={1} style={[styles.clubName, compact && styles.clubNameCompact]}>
-          {clubName.toUpperCase()}
-        </Text>
-      </View>
-      {showDetails ? <View style={styles.clubDivider} /> : null}
+        <View style={[styles.clubBlock, compact && styles.clubBlockCompact]}>
+          {showDetails ? <ClubCrest size={46} source={crestSource} /> : null}
+          <Text numberOfLines={1} style={[styles.clubName, compact && styles.clubNameCompact]}>
+            {clubName.toUpperCase()}
+          </Text>
+        </View>
+        {showDetails ? <View style={styles.clubDivider} /> : null}
 
-      <View style={[styles.statsRow, compact && styles.statsRowCompact]}>
-        <StadiumStat compact={compact} icon="calendar-outline" label="ERSTER BESUCH" value={firstVisit} />
+        <View style={[styles.statsRow, compact && styles.statsRowCompact]}>
+          <StadiumStat compact={compact} icon="calendar-outline" label="ERSTER BESUCH" value={firstVisit} />
+          {showDetails ? (
+            <>
+              <View style={styles.statDivider} />
+              <StadiumStat icon="checkmark-circle-outline" label="BESUCHE" value={formatNumber(visits)} />
+              {isFavoriteStadium ? (
+                <>
+                  <View style={styles.statDivider} />
+                  <StadiumStat icon="shield-checkmark-outline" label="LIEBLINGSSTADION" value="" />
+                </>
+              ) : null}
+            </>
+          ) : null}
+        </View>
+
         {showDetails ? (
-          <>
-            <View style={styles.statDivider} />
-            <StadiumStat icon="checkmark-circle-outline" label="BESUCHE" value={formatNumber(visits)} />
-            {isFavoriteStadium ? (
-              <>
-                <View style={styles.statDivider} />
-                <StadiumStat icon="shield-checkmark-outline" label="LIEBLINGSSTADION" value="" />
-              </>
-            ) : null}
-          </>
+          <View style={styles.capacity}>
+            <Text style={styles.capacityLabel}>KAPAZITÄT</Text>
+            <Text style={styles.capacityValue}>{formatNumber(capacity)}</Text>
+          </View>
         ) : null}
       </View>
-
-      {showDetails ? (
-        <View style={styles.capacity}>
-          <Text style={styles.capacityLabel}>KAPAZITÄT</Text>
-          <Text style={styles.capacityValue}>{formatNumber(capacity)}</Text>
-        </View>
-      ) : null}
 
       <View pointerEvents="none" style={styles.frame}>
         <PlayerStandardFrameSvg layer="overlay" rarity={card.rarity} />
@@ -125,12 +153,25 @@ const styles = StyleSheet.create({
     aspectRatio: 987 / 1414.5,
     backgroundColor: 'transparent',
     borderRadius: 10,
-    overflow: 'hidden',
+    overflow: 'visible',
     position: 'relative',
     width: '100%',
   },
   cardCompact: {
     borderRadius: 8,
+  },
+  cardClippedContent: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'transparent',
+    borderRadius: 10,
+    overflow: 'hidden',
+  },
+  cardClippedContentCompact: {
+    borderRadius: 8,
+  },
+  stadiumBackgroundImage: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 0,
   },
   titleBlock: {
     alignItems: 'center',
@@ -278,6 +319,7 @@ const styles = StyleSheet.create({
   },
   frame: {
     ...StyleSheet.absoluteFillObject,
+    overflow: 'visible',
     zIndex: 30,
   },
 });

@@ -1,5 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image, StyleSheet, Text, View, type ImageSourcePropType } from 'react-native';
+import Svg, { ClipPath, Defs, Image as SvgImage, Path } from 'react-native-svg';
+
+const cardBackBackgroundSource = require('@/assets/cards/player_standard_v2_bg--back.png');
+
+const BACK_INNER_BORDER_PATH =
+  'M202.834 32H493.206H499.794H790.166L806.167 48.2849H908.291L961 101.9293V1294.08L901.702 1354.43H593.918L561.916 1387H498.853H494.147H431.084L399.082 1354.43H91.2979L32 1294.08V101.9293L84.7092 48.2849H186.833L202.834 32Z';
 
 import {
   formatMatch,
@@ -98,10 +104,32 @@ export function PlayerStandardCardBack({ player, club, match, card }: PlayerStan
   ];
   const visibleHistoryEvents = historyEvents.slice(0, HISTORY_PREVIEW_LIMIT);
   const hiddenHistoryCount = Math.max(historyEvents.length - visibleHistoryEvents.length, 0);
+  const backgroundClipId = `playerStandardCardBackBackgroundClip-${card.rarity}`;
 
   return (
     <View style={[styles.back, { borderColor: accent.border }]}>
+      <View pointerEvents="none" style={styles.frameShadowLayer}>
+        <PlayerStandardFrameSvg layer="shadow" rarity={card.rarity} />
+      </View>
       <View style={styles.backContent}>
+        <View pointerEvents="none" style={styles.backBackground}>
+          <Svg height="100%" viewBox="0 0 992 1419.5" width="100%">
+            <Defs>
+              <ClipPath id={backgroundClipId}>
+                <Path d={BACK_INNER_BORDER_PATH} />
+              </ClipPath>
+            </Defs>
+            <SvgImage
+              clipPath={`url(#${backgroundClipId})`}
+              height="1419.5"
+              href={cardBackBackgroundSource}
+              preserveAspectRatio="xMidYMid slice"
+              width="992"
+              x="0"
+              y="0"
+            />
+          </Svg>
+        </View>
         <View style={[styles.heroPanel, { borderColor: accent.gold }]}>
           <View style={styles.crestBox}>
             {crestSource ? <Image source={crestSource} resizeMode="contain" style={styles.crest} /> : null}
@@ -251,19 +279,31 @@ function FooterBlock({ label, value, accent }: { label: string; value: string; a
 const styles = StyleSheet.create({
   back: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#06100c',
+    backgroundColor: 'transparent',
     borderRadius: 10,
-    overflow: 'hidden',
+    overflow: 'visible',
   },
   backContent: {
     ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'transparent',
     paddingBottom: 38,
     paddingHorizontal: 30,
     paddingTop: 30,
     zIndex: 5,
+    overflow: 'hidden',
+  },
+  backBackground: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 0,
+  },
+  frameShadowLayer: {
+    ...StyleSheet.absoluteFillObject,
+    overflow: 'visible',
+    zIndex: 1,
   },
   frameLayer: {
     ...StyleSheet.absoluteFillObject,
+    overflow: 'visible',
     zIndex: 20,
   },
   decorLineTop: {
@@ -282,6 +322,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 10,
     padding: 11,
+    zIndex: 2,
   },
   crestBox: {
     alignItems: 'center',
@@ -350,6 +391,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
     marginTop: 8,
+    zIndex: 2,
   },
   infoPanel: {
     backgroundColor: 'rgba(2,6,5,0.62)',
@@ -483,6 +525,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     paddingHorizontal: 10,
     paddingVertical: 8,
+    zIndex: 2,
   },
   footerBlock: {
     flex: 1,

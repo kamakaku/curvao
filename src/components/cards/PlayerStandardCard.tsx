@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { Image, Pressable, StyleSheet, Text, View, type ImageSourcePropType } from 'react-native';
 import Animated, {
+  Easing,
   interpolate,
   useAnimatedStyle,
   useSharedValue,
@@ -330,9 +331,7 @@ export function PlayerStandardCard({
     const rotateY = `${interpolate(flipProgress.value, [0, 1], [0, 180])}deg`;
 
     return {
-      opacity: flipProgress.value > 0.5 ? 0 : 1,
       transform: [{ perspective: 1200 }, { rotateY }],
-      zIndex: flipProgress.value > 0.5 ? 0 : 2,
     };
   });
 
@@ -340,9 +339,7 @@ export function PlayerStandardCard({
     const rotateY = `${interpolate(flipProgress.value, [0, 1], [180, 360])}deg`;
 
     return {
-      opacity: flipProgress.value > 0.5 ? 1 : 0,
       transform: [{ perspective: 1200 }, { rotateY }],
-      zIndex: flipProgress.value > 0.5 ? 2 : 0,
     };
   });
 
@@ -353,7 +350,10 @@ export function PlayerStandardCard({
 
     const next = !flipped;
     setFlipped(next);
-    flipProgress.value = withTiming(next ? 1 : 0, { duration: 650 });
+    flipProgress.value = withTiming(next ? 1 : 0, {
+      duration: 720,
+      easing: Easing.inOut(Easing.cubic),
+    });
   }
 
   return (
@@ -366,6 +366,7 @@ export function PlayerStandardCard({
         style={[styles.flipPressable, !canFlip && styles.flipPressablePassthrough]}>
       <View style={styles.card}>
         <Animated.View style={[styles.flipFace, canFlip && frontAnimatedStyle]}>
+          <View style={styles.cardClippedContent}>
         {/* the card background is the single full-card artwork */}
         {!isSmall ? (
           <PlayerStandardBackgroundSvg source={stadiumBackgroundSource} />
@@ -603,6 +604,7 @@ export function PlayerStandardCard({
             ) : null}
           </View>
         )}
+          </View>
         <View style={styles.frameOverlay}>
           <PlayerStandardFrameSvg layer="overlay" rarity={card.rarity} />
         </View>
@@ -679,6 +681,7 @@ const styles = StyleSheet.create({
   },
   flipPressable: {
     width: '100%',
+    overflow: 'visible',
     zIndex: 1,
   },
   flipPressablePassthrough: {
@@ -697,13 +700,20 @@ const styles = StyleSheet.create({
     backfaceVisibility: 'hidden',
     backgroundColor: 'transparent',
     borderRadius: 10,
-    overflow: 'hidden',
+    overflow: 'visible',
   },
   flipBackFace: {
     backgroundColor: '#06100c',
   },
+  cardClippedContent: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'transparent',
+    borderRadius: 10,
+    overflow: 'hidden',
+  },
   frameOverlay: {
     ...StyleSheet.absoluteFillObject,
+    overflow: 'visible',
     zIndex: 30,
   },
   portraitLayer: {
