@@ -44,6 +44,23 @@ export type Player = {
   active: boolean;
 };
 
+export type Stadium = {
+  id: string;
+  name: string;
+  city: string;
+  country?: string;
+  club?: string;
+  capacity?: number;
+  image?: string;
+  latitude?: number;
+  longitude?: number;
+  active: boolean;
+  sortOrder?: number;
+  expand?: {
+    club?: Club;
+  };
+};
+
 export type Match = {
   id: string;
   homeClub: string;
@@ -51,12 +68,28 @@ export type Match = {
   competition: string;
   season: string;
   kickoffAt: string;
+  stadium?: string;
   stadiumName: string;
   stadiumCity: string;
+  stadiumCapacity?: number;
+  stadiumImage?: string;
+  stadiumVisitCount?: number;
+  favoriteStadium?: boolean;
   status: MatchStatus;
   homeScore?: number;
   awayScore?: number;
+  homeGoalScorers?: string[];
+  awayGoalScorers?: string[];
   importance: Exclude<Rarity, 'oneoff'>;
+  expand?: {
+    homeClub?: Club;
+    awayClub?: Club;
+    stadium?: Stadium & {
+      expand?: {
+        club?: Club;
+      };
+    };
+  };
 };
 
 export type MatchPlayer = {
@@ -95,6 +128,7 @@ export type UserCard = {
   editionSize?: number;
   match?: string;
   player?: string;
+  stadium?: string;
   sourceCheckin?: string;
   tradable: boolean;
   bound: boolean;
@@ -105,11 +139,22 @@ export type UserCard = {
   acquiredAt: string;
   archived: boolean;
   favorite: boolean;
+  stadiumName?: string;
+  stadiumCity?: string;
+  stadiumCapacity?: number;
+  stadiumImage?: string;
+  stadiumVisitCount?: number;
+  favoriteStadium?: boolean;
   expand?: {
     match?: Match & {
       expand?: {
         homeClub?: Club;
         awayClub?: Club;
+        stadium?: Stadium & {
+          expand?: {
+            club?: Club;
+          };
+        };
       };
     };
     player?: Player & {
@@ -117,7 +162,26 @@ export type UserCard = {
         club?: Club;
       };
     };
+    stadium?: Stadium & {
+      expand?: {
+        club?: Club;
+      };
+    };
   };
+};
+
+export type CardTemplate = {
+  id: string;
+  key?: string;
+  name: string;
+  type: CardType;
+  rarity: Rarity;
+  version?: string;
+  description?: string;
+  image?: string;
+  visualConfig?: string;
+  tradableDefault: boolean;
+  active: boolean;
 };
 
 export type CardEvent = {

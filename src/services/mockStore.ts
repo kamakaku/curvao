@@ -6,12 +6,14 @@ import {
   mockMatches,
   mockMatchPlayers,
   mockPlayers,
+  mockStadiums,
   mockUserAchievements,
   mockUserCards,
 } from '@/src/data/mockData';
 
 export const mockStore = {
   clubs: [...mockClubs],
+  stadiums: [...mockStadiums],
   players: [...mockPlayers],
   matches: [...mockMatches],
   matchPlayers: [...mockMatchPlayers],

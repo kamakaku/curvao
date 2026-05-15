@@ -32,23 +32,23 @@ const LEFT_RAIL_LAYOUT = {
   },
   content: {
     top: '2%',
-    left: '3%',
+    left: '4%',
     width: '17.55%',
     height: '34.1%',
     paddingTop: 8,
   },
   smallBackground: {
-    top: '6.2%',
+    top: '4%',
     left: '3.15%',
-    width: '22%',
-    height: '33%',
+    width: '30%',
+    height: '50%',
   },
   smallContent: {
-    top: '7%',
-    left: '7%',
+    top: '0%',
+    left: '6.5%',
     width: '20%',
-    height: '33%',
-    paddingTop: 8,
+    height: '20%',
+    paddingTop: 0,
   },
 } as const;
 
@@ -369,7 +369,7 @@ export function PlayerStandardCard({
         {/* the card background is the single full-card artwork */}
         {!isSmall ? (
           <PlayerStandardBackgroundSvg source={stadiumBackgroundSource} />
-        ) : null}
+        ) : <PlayerStandardBackgroundSvg source={stadiumBackgroundSource} />}
 
         {/* player portrait — reliable RN Image, faded via overlay below */}
         <View style={[styles.portraitLayer, isSmall && styles.portraitLayerSmall]}>
@@ -720,7 +720,7 @@ const styles = StyleSheet.create({
   portraitLayerSmall: {
     top: '10%',
     bottom: '29%',
-    left: '24%',
+    left: '20%',
     right: '4%',
   },
   playerImage: {
@@ -897,7 +897,7 @@ const styles = StyleSheet.create({
     zIndex: 9,
   },
   nameBlockSmall: {
-    bottom: '27%',
+    bottom: '20%',
     paddingHorizontal: 8,
   },
   firstName: {
@@ -1071,7 +1071,7 @@ const styles = StyleSheet.create({
   footerSmall: {
     left: '11%',
     right: '11%',
-    bottom: '5%',
+    bottom: '6%',
   },
   footerLeft: {
     flexDirection: 'row',

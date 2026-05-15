@@ -1,6 +1,6 @@
 import { mockStore } from '@/src/services/mockStore';
 import { pb, tryPocketBase } from '@/src/services/pocketbase';
-import type { Club, Match, MatchPlayer, Player } from '@/src/types/models';
+import type { Club, Match, MatchPlayer, Player, Stadium } from '@/src/types/models';
 
 export async function getClubs(): Promise<Club[]> {
   return tryPocketBase(
@@ -16,9 +16,16 @@ export async function getPlayers(): Promise<Player[]> {
   );
 }
 
+export async function getStadiums(): Promise<Stadium[]> {
+  return tryPocketBase(
+    async () => pb.collection('stadiums').getFullList<Stadium>({ expand: 'club', sort: 'sortOrder,name' }),
+    () => mockStore.stadiums,
+  );
+}
+
 export async function getMatches(): Promise<Match[]> {
   return tryPocketBase(
-    async () => pb.collection('matches').getFullList<Match>({ sort: 'kickoffAt' }),
+    async () => pb.collection('matches').getFullList<Match>({ expand: 'stadium,stadium.club', sort: 'kickoffAt' }),
     () => mockStore.matches,
   );
 }
@@ -32,7 +39,7 @@ export async function getMatchPlayers(matchId: string): Promise<MatchPlayer[]> {
 
 export async function getMatchById(matchId: string): Promise<Match | undefined> {
   return tryPocketBase(
-    async () => pb.collection('matches').getOne<Match>(matchId),
+    async () => pb.collection('matches').getOne<Match>(matchId, { expand: 'stadium,stadium.club' }),
     () => mockStore.matches.find((match) => match.id === matchId),
   );
 }

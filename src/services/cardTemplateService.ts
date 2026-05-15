@@ -137,16 +137,24 @@ export function formatMatch(match?: {
 export function getCardRelations(card: UserCard) {
   const player = card.expand?.player ?? (card.player ? mockStore.players.find((item) => item.id === card.player) : undefined);
   const match = card.expand?.match ?? (card.match ? mockStore.matches.find((item) => item.id === card.match) : undefined);
+  const stadium =
+    card.expand?.stadium ??
+    match?.expand?.stadium ??
+    (card.stadium ? mockStore.stadiums.find((item) => item.id === card.stadium) : undefined) ??
+    (match?.stadium ? mockStore.stadiums.find((item) => item.id === match.stadium) : undefined);
   const homeClub = card.expand?.match?.expand?.homeClub ?? (match ? mockStore.clubs.find((club) => club.id === match.homeClub) : undefined);
   const awayClub = card.expand?.match?.expand?.awayClub ?? (match ? mockStore.clubs.find((club) => club.id === match.awayClub) : undefined);
   const playerClub = card.expand?.player?.expand?.club ?? (player ? mockStore.clubs.find((club) => club.id === player.club) : undefined);
+  const stadiumClub = stadium?.expand?.club ?? (stadium?.club ? mockStore.clubs.find((club) => club.id === stadium.club) : undefined);
 
   return {
     player,
     match,
+    stadium,
     homeClub,
     awayClub,
     playerClub,
+    stadiumClub,
   };
 }
 
