@@ -1,3 +1,4 @@
+import { PlayerCardPreview } from '@/src/components/cards/PlayerCardPreview';
 import { PlayerStandardCard } from '@/src/components/cards/PlayerStandardCard';
 import { getClubCrestSource, getPlayerImageSource } from '@/src/services/cardAssetService';
 import { getCardRelations } from '@/src/services/cardTemplateService';
@@ -15,6 +16,17 @@ export function PlayerCardView({ card, compact, size }: PlayerCardViewProps) {
   const [fallbackFirstName = card.title, fallbackLastName = ''] = card.title.split(' ');
   const resolvedSize = size ?? (compact ? 'small' : 'large');
   const pocketBaseCrestUrl = getPocketBaseFileUrl(playerClub, playerClub?.crest);
+
+  // Use specialized Preview component for compact dashboard views
+  if (compact && player && playerClub) {
+    return (
+      <PlayerCardPreview 
+        card={card} 
+        player={player} 
+        club={playerClub} 
+      />
+    );
+  }
 
   return (
     <PlayerStandardCard

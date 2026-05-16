@@ -113,67 +113,67 @@ export default function DeckScreen() {
 const styles = StyleSheet.create({
   title: {
     color: curvao.colors.text,
-    fontSize: 32,
-    fontWeight: '900',
+    fontSize: curvao.typography.size.xxl,
+    fontWeight: curvao.typography.weight.black,
   },
   copy: {
     color: curvao.colors.muted,
   },
   section: {
     color: curvao.colors.text,
-    fontSize: 18,
-    fontWeight: '800',
-    marginTop: 8,
+    fontSize: curvao.typography.size.lg,
+    fontWeight: curvao.typography.weight.heavy,
+    marginTop: curvao.spacing.sm,
   },
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
+    gap: curvao.spacing.md,
   },
   cardWrap: {
     width: '48%',
   },
   marker: {
     color: curvao.colors.gold,
-    fontSize: 11,
-    fontWeight: '900',
-    marginTop: 6,
+    fontSize: 11, // keep for micro copy
+    fontWeight: curvao.typography.weight.black,
+    marginTop: curvao.spacing.xs,
   },
   group: {
     backgroundColor: curvao.colors.surface,
     borderColor: curvao.colors.border,
     borderRadius: curvao.radius.md,
     borderWidth: 1,
-    padding: 14,
+    padding: curvao.spacing.md,
   },
   groupTitle: {
     color: curvao.colors.text,
-    fontSize: 16,
-    fontWeight: '800',
+    fontSize: curvao.typography.size.md,
+    fontWeight: curvao.typography.weight.heavy,
   },
   groupCopy: {
     color: curvao.colors.muted,
-    marginTop: 4,
+    marginTop: curvao.spacing.xs,
   },
   bindPanel: {
     backgroundColor: curvao.colors.surfaceElevated,
     borderColor: curvao.colors.border,
     borderRadius: curvao.radius.md,
     borderWidth: 1,
-    gap: 12,
-    padding: 16,
+    gap: curvao.spacing.md,
+    padding: curvao.spacing.base,
   },
   choices: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: curvao.spacing.md,
   },
   choice: {
     borderColor: curvao.colors.border,
     borderRadius: curvao.radius.sm,
     borderWidth: 1,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
+    paddingHorizontal: curvao.spacing.sm,
+    paddingVertical: curvao.spacing.md,
   },
   choiceActive: {
     backgroundColor: curvao.colors.gold,
@@ -181,9 +181,9 @@ const styles = StyleSheet.create({
   },
   choiceText: {
     color: curvao.colors.text,
-    fontWeight: '700',
+    fontWeight: curvao.typography.weight.bold,
   },
   choiceTextActive: {
-    color: '#151006',
+    color: curvao.colors.textInverted,
   },
 });

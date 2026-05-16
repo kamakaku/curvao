@@ -22,12 +22,12 @@ const styles = StyleSheet.create({
   },
   value: {
     color: curvao.colors.gold,
-    fontSize: 20,
-    fontWeight: '800',
+    fontSize: curvao.typography.size.lg,
+    fontWeight: curvao.typography.weight.heavy,
   },
   label: {
     color: curvao.colors.muted,
-    fontSize: 12,
+    fontSize: curvao.typography.size.xs,
     marginTop: 2,
   },
 });

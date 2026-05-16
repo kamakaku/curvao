@@ -1,10 +1,11 @@
 export const curvao = {
   colors: {
-    background: '#090d0b',
+    background: '#0C0D0E',
     surface: '#111814',
     surfaceElevated: '#18221d',
     border: '#26382f',
     text: '#f5f1e8',
+    textInverted: '#151006',
     muted: '#9ca89f',
     green: '#0f6b3f',
     greenBright: '#18a464',
@@ -14,12 +15,34 @@ export const curvao = {
   radius: {
     sm: 6,
     md: 8,
+    lg: 12,
   },
   spacing: {
     xs: 6,
     sm: 10,
     md: 14,
+    base: 16,
     lg: 20,
     xl: 28,
+  },
+  typography: {
+    size: {
+      xs: 12,
+      sm: 14,
+      base: 15,
+      md: 16,
+      lg: 18,
+      xl: 24,
+      xxl: 32,
+      xxxl: 42,
+    },
+    weight: {
+      regular: '400' as const,
+      medium: '500' as const,
+      semiBold: '600' as const,
+      bold: '700' as const,
+      heavy: '800' as const,
+      black: '900' as const,
+    },
   },
 };

@@ -8,8 +8,10 @@ const clubCrestSources: Record<string, ImageSourcePropType> = {
   clubhertha00001: require('@/assets/cards/hertha_crest.png'),
 };
 
+const playerPlaceholder = require('@/assets/cards/player_placholder.png');
+
 export function getPlayerImageSource(playerId?: string) {
-  return playerId ? playerImageSources[playerId] : undefined;
+  return (playerId ? playerImageSources[playerId] : undefined) ?? playerPlaceholder;
 }
 
 export function getClubCrestSource(clubId?: string) {

@@ -74,7 +74,7 @@ export default function CollectionScreen() {
         {visibleCards.map((card) => <CardTile key={card.id} card={card} onPress={() => setSelected(card)} />)}
       </View>
       {visibleCards.length === 0 ? <EmptyState title="No cards match this filter" /> : null}
-      <CardDetailPanel card={selected} onClose={() => setSelected(undefined)} />
+      <CardDetailPanel card={selected} cards={visibleCards} onClose={() => setSelected(undefined)} />
     </CurvaoScreen>
   );
 }
@@ -82,8 +82,8 @@ export default function CollectionScreen() {
 const styles = StyleSheet.create({
   title: {
     color: curvao.colors.text,
-    fontSize: 32,
-    fontWeight: '900',
+    fontSize: curvao.typography.size.xxl,
+    fontWeight: curvao.typography.weight.black,
   },
   copy: {
     color: curvao.colors.muted,
@@ -91,14 +91,14 @@ const styles = StyleSheet.create({
   filters: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: curvao.spacing.md,
   },
   filter: {
     borderColor: curvao.colors.border,
     borderRadius: curvao.radius.sm,
     borderWidth: 1,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
+    paddingHorizontal: curvao.spacing.sm,
+    paddingVertical: curvao.spacing.md,
   },
   activeFilter: {
     backgroundColor: curvao.colors.gold,
@@ -106,15 +106,15 @@ const styles = StyleSheet.create({
   },
   filterLabel: {
     color: curvao.colors.text,
-    fontSize: 12,
-    fontWeight: '700',
+    fontSize: curvao.typography.size.xs,
+    fontWeight: curvao.typography.weight.bold,
   },
   activeFilterLabel: {
-    color: '#151006',
+    color: curvao.colors.textInverted,
   },
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
+    gap: curvao.spacing.md,
   },
 });

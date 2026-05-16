@@ -2,6 +2,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert, StyleSheet, Text, View } from 'react-native';
 
+import { CardDetailPanel } from '@/src/components/CardDetailPanel';
 import { CardTile } from '@/src/components/CardTile';
 import { CurvaoScreen } from '@/src/components/CurvaoScreen';
 import { EmptyState } from '@/src/components/EmptyState';
@@ -19,6 +20,7 @@ export default function MatchDetailScreen() {
   const [match, setMatch] = useState<Match>();
   const [createdCards, setCreatedCards] = useState<UserCard[]>([]);
   const [loading, setLoading] = useState(false);
+  const [selectedCard, setSelectedCard] = useState<UserCard>();
 
   useEffect(() => {
     if (id) {
@@ -63,9 +65,11 @@ export default function MatchDetailScreen() {
 
       <Text style={styles.section}>Generated Cards</Text>
       <View style={styles.grid}>
-        {createdCards.map((card) => <CardTile key={card.id} card={card} />)}
+        {createdCards.map((card) => <CardTile key={card.id} card={card} onPress={() => setSelectedCard(card)} />)}
       </View>
       {createdCards.length === 0 ? <EmptyState title="No check-in yet" body="Choose a check-in type to generate one Match Card and 3-5 Player Cards." /> : null}
+
+      <CardDetailPanel card={selectedCard} cards={createdCards} onClose={() => setSelectedCard(undefined)} />
     </CurvaoScreen>
   );
 }

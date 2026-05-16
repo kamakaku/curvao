@@ -21,11 +21,11 @@ const styles = StyleSheet.create({
   },
   title: {
     color: curvao.colors.text,
-    fontSize: 16,
-    fontWeight: '800',
+    fontSize: curvao.typography.size.md,
+    fontWeight: curvao.typography.weight.heavy,
   },
   body: {
     color: curvao.colors.muted,
-    marginTop: 6,
+    marginTop: curvao.spacing.xs,
   },
 });

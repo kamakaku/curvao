@@ -25,8 +25,8 @@ const styles = StyleSheet.create({
     borderColor: curvao.colors.border,
     borderRadius: curvao.radius.md,
     borderWidth: 1,
-    gap: 8,
-    padding: 16,
+    gap: curvao.spacing.sm,
+    padding: curvao.spacing.base,
   },
   pressed: {
     opacity: 0.84,
@@ -38,13 +38,13 @@ const styles = StyleSheet.create({
   },
   competition: {
     color: curvao.colors.gold,
-    fontSize: 12,
-    fontWeight: '800',
+    fontSize: curvao.typography.size.xs,
+    fontWeight: curvao.typography.weight.heavy,
   },
   teams: {
     color: curvao.colors.text,
-    fontSize: 20,
-    fontWeight: '800',
+    fontSize: curvao.typography.size.lg,
+    fontWeight: curvao.typography.weight.heavy,
   },
   meta: {
     color: curvao.colors.muted,
@@ -52,6 +52,6 @@ const styles = StyleSheet.create({
   status: {
     color: curvao.colors.greenBright,
     fontSize: 11,
-    fontWeight: '800',
+    fontWeight: curvao.typography.weight.heavy,
   },
 });

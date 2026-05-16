@@ -31,7 +31,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: curvao.colors.gold,
     borderRadius: curvao.radius.md,
-    paddingHorizontal: 14,
+    paddingHorizontal: curvao.spacing.md,
     paddingVertical: 12,
   },
   secondary: {
@@ -46,8 +46,8 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
   label: {
-    color: '#151006',
-    fontWeight: '800',
+    color: curvao.colors.textInverted,
+    fontWeight: curvao.typography.weight.heavy,
   },
   secondaryLabel: {
     color: curvao.colors.text,

@@ -1,11 +1,14 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { CardDetailPanel } from '@/src/components/CardDetailPanel';
 import { CardTile } from '@/src/components/CardTile';
 import { CurvaoScreen } from '@/src/components/CurvaoScreen';
+import { DashboardActiveMission } from '@/src/components/dashboard/DashboardActiveMission';
+import { DashboardNextMatch } from '@/src/components/dashboard/DashboardNextMatch';
+import { DashboardProgress } from '@/src/components/dashboard/DashboardProgress';
 import { EmptyState } from '@/src/components/EmptyState';
-import { MatchTile } from '@/src/components/MatchTile';
-import { StatPill } from '@/src/components/StatPill';
 import { getCurrentUser } from '@/src/services/authService';
 import { getLatestCards } from '@/src/services/cardService';
 import { getMatches } from '@/src/services/matchService';
@@ -15,6 +18,7 @@ import type { Match, UserCard } from '@/src/types/models';
 export default function HomeScreen() {
   const [nextMatch, setNextMatch] = useState<Match>();
   const [latestCards, setLatestCards] = useState<UserCard[]>([]);
+  const [selectedCard, setSelectedCard] = useState<UserCard>();
 
   useEffect(() => {
     async function load() {
@@ -28,84 +32,118 @@ export default function HomeScreen() {
   }, []);
 
   return (
-    <CurvaoScreen>
-      <View style={styles.brand}>
-        <Text style={styles.kicker}>Verified football cards</Text>
-        <Text style={styles.logo}>Curvao</Text>
-        <Text style={styles.copy}>Earned proof, lasting memory, real play material.</Text>
+    <CurvaoScreen padded={false}>
+      <View style={styles.container}>
+        {/* Next Match Section */}
+        <View style={styles.section}>
+          {nextMatch ? (
+            <DashboardNextMatch match={nextMatch} />
+          ) : (
+            <EmptyState title="No matches yet" />
+          )}
+        </View>
+
+        {/* Progress Section */}
+        <View style={styles.section}>
+          <DashboardProgress />
+        </View>
+
+        {/* Latest Cards Section */}
+        <View style={styles.cardsSection}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>NEUESTE CARDS</Text>
+            <Pressable style={({ pressed }) => [styles.seeAllRow, pressed && styles.pressed]}>
+               <Text style={styles.seeAllText}>Alle anzeigen</Text>
+               <Ionicons name="chevron-forward" size={14} color={curvao.colors.gold} />
+            </Pressable>
+          </View>
+          
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false} 
+            contentContainerStyle={styles.horizontalCards}
+            decelerationRate="fast"
+            snapToInterval={154} // card width (140) + gap (14)
+          >
+            {latestCards.map((card) => (
+              <View key={card.id} style={styles.cardWrapper}>
+                <CardTile card={card} onPress={() => setSelectedCard(card)} fullWidth />
+              </View>
+            ))}
+            {latestCards.length === 0 && (
+              <View style={styles.emptyContainer}>
+                <Text style={styles.emptyText}>Noch keine Karten gesammelt</Text>
+              </View>
+            )}
+          </ScrollView>
+        </View>
+
+        {/* Active Mission Section */}
+        <View style={styles.section}>
+          <DashboardActiveMission />
+        </View>
       </View>
 
-      <View style={styles.stats}>
-        <StatPill label="Archive" value={latestCards.length} />
-        <StatPill label="Mission" value="1" />
-        <StatPill label="Bond" value="Live" />
-      </View>
-
-      <Text style={styles.section}>Next Match</Text>
-      {nextMatch ? <MatchTile match={nextMatch} /> : <EmptyState title="No matches yet" body="PocketBase can provide live match records when collections are configured." />}
-
-      <Text style={styles.section}>Latest Cards</Text>
-      <View style={styles.grid}>
-        {latestCards.map((card) => <CardTile key={card.id} card={card} />)}
-      </View>
-      {latestCards.length === 0 ? <EmptyState title="Archive is empty" body="Check in to a match to mint proof and player cards." /> : null}
-
-      <View style={styles.mission}>
-        <Text style={styles.missionTitle}>Active Mission</Text>
-        <Text style={styles.missionText}>Verify a match this week to unlock the first supporter patch.</Text>
-      </View>
+      <CardDetailPanel card={selectedCard} cards={latestCards} onClose={() => setSelectedCard(undefined)} />
     </CurvaoScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  brand: {
-    gap: 6,
-  },
-  kicker: {
-    color: curvao.colors.gold,
-    fontSize: 12,
-    fontWeight: '800',
-    textTransform: 'uppercase',
-  },
-  logo: {
-    color: curvao.colors.text,
-    fontSize: 42,
-    fontWeight: '900',
-  },
-  copy: {
-    color: curvao.colors.muted,
-    fontSize: 15,
-  },
-  stats: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
+  container: {
+    paddingHorizontal: curvao.spacing.lg,
+    paddingTop: curvao.spacing.md,
+    paddingBottom: 40,
+    gap: curvao.spacing.xl,
   },
   section: {
-    color: curvao.colors.text,
-    fontSize: 18,
-    fontWeight: '800',
-    marginTop: 8,
+    width: '100%',
   },
-  grid: {
+  cardsSection: {
+    width: '100%',
+    marginLeft: -2, // Optical alignment
+  },
+  sectionHeader: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: curvao.spacing.md,
   },
-  mission: {
-    backgroundColor: curvao.colors.surfaceElevated,
-    borderColor: curvao.colors.border,
-    borderRadius: curvao.radius.md,
-    borderWidth: 1,
-    padding: 16,
-  },
-  missionTitle: {
+  sectionTitle: {
     color: curvao.colors.gold,
-    fontWeight: '800',
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 1.5,
   },
-  missionText: {
-    color: curvao.colors.text,
-    marginTop: 6,
+  seeAllRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: 4,
+    paddingLeft: 8,
+  },
+  pressed: {
+    opacity: 0.6,
+  },
+  seeAllText: {
+    color: curvao.colors.gold,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  horizontalCards: {
+    gap: 14,
+    paddingRight: curvao.spacing.lg,
+  },
+  cardWrapper: {
+    width: 140, 
+  },
+  emptyContainer: {
+    paddingVertical: 20,
+  },
+  emptyText: {
+    color: curvao.colors.muted,
+    fontSize: 13,
+    fontWeight: '500',
   },
 });
+
