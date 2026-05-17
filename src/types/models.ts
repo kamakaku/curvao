@@ -8,7 +8,13 @@ export type CardOrigin =
   | 'club_drop'
   | 'event_drop'
   | 'gifted'
-  | 'bound';
+  | 'bound'
+  | 'starter_pack'
+  | 'fan_claimed'
+  | 'live_verified'
+  | 'special_moment'
+  | 'club_reward'
+  | 'season_reward';
 export type CheckinType = 'stadium' | 'viewing';
 export type MatchStatus = 'scheduled' | 'live' | 'finished';
 export type CardEventType =

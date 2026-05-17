@@ -1,5 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { curvao } from '@/src/theme/curvaoTheme';
@@ -8,9 +10,14 @@ const logo = require('@/assets/logo_word.png');
 
 export function TopBar() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={[styles.root, { paddingTop: insets.top }]}>
+      <LinearGradient
+        colors={['rgba(0,0,0,0.9)', 'rgba(0,0,0,0.7)', 'transparent']}
+        style={StyleSheet.absoluteFill}
+      />
       <View style={styles.content}>
         {/* Left Side: Logo & Subline */}
         <View style={styles.leftSection}>
@@ -25,7 +32,10 @@ export function TopBar() {
         {/* Right Side: Bell, Avatar, Level/XP */}
         <View style={styles.rightSection}>
           <Ionicons name="notifications-outline" size={24} color={curvao.colors.text} style={styles.bellIcon} />
-          <View style={styles.profileSection}>
+          <Pressable 
+            onPress={() => router.push('/pass')}
+            style={({ pressed }) => [styles.profileSection, pressed && styles.pressed]}
+          >
             <View style={styles.avatarContainer}>
               <Ionicons name="person" size={20} color={curvao.colors.muted} />
             </View>
@@ -33,7 +43,7 @@ export function TopBar() {
               <Text style={styles.levelText}>LVL 12</Text>
               <Text style={styles.xpText}>4.250 XP</Text>
             </View>
-          </View>
+          </Pressable>
         </View>
       </View>
     </View>
@@ -41,9 +51,11 @@ export function TopBar() {
 }
 
 const styles = StyleSheet.create({
-  container: {
+  root: {
     backgroundColor: 'transparent', 
     zIndex: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(216, 170, 77, 0.1)',
   },
   content: {
     flexDirection: 'row',
@@ -74,8 +86,8 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
   subline: {
-    color: curvao.colors.muted, // Muted is better for secondary info
-    fontSize: 10, // Larger for readability
+    color: curvao.colors.muted,
+    fontSize: 10,
     fontWeight: '700',
     letterSpacing: 1.2,
   },
@@ -91,6 +103,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+  },
+  pressed: {
+    opacity: 0.7,
   },
   avatarContainer: {
     height: 36,

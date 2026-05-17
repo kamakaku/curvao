@@ -1,4 +1,5 @@
 import { PlayerCardPreview } from '@/src/components/cards/PlayerCardPreview';
+import { PlayerLargeCard } from '@/src/components/cards/PlayerLargeCard';
 import { PlayerStandardCard } from '@/src/components/cards/PlayerStandardCard';
 import { getClubCrestSource, getPlayerImageSource } from '@/src/services/cardAssetService';
 import { getCardRelations } from '@/src/services/cardTemplateService';
@@ -17,58 +18,82 @@ export function PlayerCardView({ card, compact, size }: PlayerCardViewProps) {
   const resolvedSize = size ?? (compact ? 'small' : 'large');
   const pocketBaseCrestUrl = getPocketBaseFileUrl(playerClub, playerClub?.crest);
 
-  // Use specialized Preview component for compact dashboard views
-  if (compact && player && playerClub) {
+  // Use specialized Preview component for compact views
+  if (compact) {
+    const displayPlayer = player || {
+      id: 'unknown',
+      lastName: fallbackLastName || fallbackFirstName,
+      displayName: card.title,
+      position: 'PLAYER',
+      active: true,
+      club: 'unknown'
+    };
+
+    const displayClub = playerClub || {
+      id: 'unknown',
+      name: card.subtitle || 'Curvao Club',
+      shortName: 'CVO'
+    };
+
     return (
       <PlayerCardPreview 
         card={card} 
-        player={player} 
-        club={playerClub} 
+        player={displayPlayer} 
+        club={displayClub} 
       />
     );
+  }
+
+  const commonProps = {
+    player: {
+      firstName: player?.firstName ?? fallbackFirstName,
+      lastName: player?.lastName ?? fallbackLastName,
+      displayName: player?.displayName ?? card.title,
+      position: player?.position ?? 'PLAYER',
+      shirtNumber: player?.shirtNumber,
+      nationality: player?.nationality,
+      imageSource: getPlayerImageSource(player?.id),
+    },
+    club: {
+      name: playerClub?.name ?? card.subtitle ?? 'Curvao Club',
+      shortName: playerClub?.shortName,
+      crestUrl: pocketBaseCrestUrl,
+      crestSource: pocketBaseCrestUrl ? undefined : getClubCrestSource(playerClub?.id),
+      primaryColor: playerClub?.primaryColor,
+      secondaryColor: playerClub?.secondaryColor,
+    },
+    match: match
+      ? {
+          homeShortName: homeClub?.shortName,
+          awayShortName: awayClub?.shortName,
+          homeScore: match.homeScore,
+          awayScore: match.awayScore,
+          kickoffAt: match.kickoffAt,
+        }
+      : undefined,
+    card: {
+      rarity: card.rarity,
+      editionNumber: card.editionNumber,
+      editionSize: card.editionSize,
+      origin: card.origin,
+      bondLevel: card.bondLevel,
+      archived: card.archived,
+      tradable: card.tradable,
+      bound: card.bound,
+      seenLiveCount: card.stadiumVisitCount ?? 0,
+      momentsCount: 0, // Placeholder for future data
+      acquiredAt: card.acquiredAt,
+    },
+  };
+
+  if (resolvedSize === 'large') {
+    return <PlayerLargeCard {...commonProps} />;
   }
 
   return (
     <PlayerStandardCard
       size={resolvedSize}
-      player={{
-        firstName: player?.firstName ?? fallbackFirstName,
-        lastName: player?.lastName ?? fallbackLastName,
-        displayName: player?.displayName ?? card.title,
-        position: player?.position ?? 'PLAYER',
-        shirtNumber: player?.shirtNumber,
-        nationality: player?.nationality,
-        imageSource: getPlayerImageSource(player?.id),
-      }}
-      club={{
-        name: playerClub?.name ?? card.subtitle ?? 'Curvao Club',
-        shortName: playerClub?.shortName,
-        crestUrl: pocketBaseCrestUrl,
-        crestSource: pocketBaseCrestUrl ? undefined : getClubCrestSource(playerClub?.id),
-        primaryColor: playerClub?.primaryColor,
-        secondaryColor: playerClub?.secondaryColor,
-      }}
-      match={
-        match
-          ? {
-              homeShortName: homeClub?.shortName,
-              awayShortName: awayClub?.shortName,
-              homeScore: match.homeScore,
-              awayScore: match.awayScore,
-              kickoffAt: match.kickoffAt,
-            }
-          : undefined
-      }
-      card={{
-        rarity: card.rarity,
-        editionNumber: card.editionNumber,
-        editionSize: card.editionSize,
-        origin: card.origin,
-        bondLevel: card.bondLevel,
-        archived: card.archived,
-        tradable: card.tradable,
-        bound: card.bound,
-      }}
+      {...commonProps}
     />
   );
 }

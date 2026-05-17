@@ -1,13 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { Image, Pressable, StyleSheet, Text, View, type ImageSourcePropType } from 'react-native';
-import Animated, {
-  Easing,
-  interpolate,
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
-} from 'react-native-reanimated';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 
 import { PlayerStandardCardBack } from '@/src/components/cards/PlayerStandardCardBack';
@@ -249,10 +242,12 @@ function formatFrontMatchScore(match?: PlayerStandardCardProps['match']) {
   const hasScore = typeof match.homeScore === 'number' && typeof match.awayScore === 'number';
 
   if (!hasScore) {
-    return `${match.homeShortName}\n${match.awayShortName}`;
+    return `${match.homeShortName}
+${match.awayShortName}`;
   }
 
-  return `${match.homeShortName} ${match.homeScore}\n${match.awayShortName} ${match.awayScore}`;
+  return `${match.homeShortName} ${match.homeScore}
+${match.awayShortName} ${match.awayScore}`;
 }
 
 function getFrontMatchScoreRows(match?: PlayerStandardCardProps['match']) {
@@ -324,36 +319,13 @@ export function PlayerStandardCard({
   const playerImageSource = player.imageSource ?? (player.imageUrl ? { uri: player.imageUrl } : undefined);
   const crestSource = club.crestSource ?? (club.crestUrl ? { uri: club.crestUrl } : undefined);
   const [flipped, setFlipped] = useState(false);
-  const flipProgress = useSharedValue(0);
   const canFlip = !isSmall;
-
-  const frontAnimatedStyle = useAnimatedStyle(() => {
-    const rotateY = `${interpolate(flipProgress.value, [0, 1], [0, 180])}deg`;
-
-    return {
-      transform: [{ perspective: 1200 }, { rotateY }],
-    };
-  });
-
-  const backAnimatedStyle = useAnimatedStyle(() => {
-    const rotateY = `${interpolate(flipProgress.value, [0, 1], [180, 360])}deg`;
-
-    return {
-      transform: [{ perspective: 1200 }, { rotateY }],
-    };
-  });
 
   function toggleFlip() {
     if (!canFlip) {
       return;
     }
-
-    const next = !flipped;
-    setFlipped(next);
-    flipProgress.value = withTiming(next ? 1 : 0, {
-      duration: 720,
-      easing: Easing.inOut(Easing.cubic),
-    });
+    setFlipped(!flipped);
   }
 
   return (
@@ -364,256 +336,245 @@ export function PlayerStandardCard({
         disabled={!canFlip}
         onPress={toggleFlip}
         style={[styles.flipPressable, !canFlip && styles.flipPressablePassthrough]}>
-      <View style={styles.card}>
-        <Animated.View style={[styles.flipFace, canFlip && frontAnimatedStyle]}>
+      <View style={[styles.card, isSmall && styles.cardFixedAspect]}>
+        {!flipped ? (
           <View style={styles.cardClippedContent}>
-        {/* the card background is the single full-card artwork */}
-        {!isSmall ? (
-          <PlayerStandardBackgroundSvg source={stadiumBackgroundSource} />
-        ) : <PlayerStandardBackgroundSvg source={stadiumBackgroundSource} />}
+            <PlayerStandardBackgroundSvg source={stadiumBackgroundSource} />
 
-        {/* player portrait — reliable RN Image, faded via overlay below */}
-        <View style={[styles.portraitLayer, isSmall && styles.portraitLayerSmall]}>
-          {playerImageSource ? (
-            <Image source={playerImageSource} style={styles.playerImage} resizeMode="contain" />
-          ) : (
-            <View style={[styles.silhouette, { borderColor: accent.green }]}>
-              <Text style={[styles.silhouetteInitials, { color: accent.green }]}>{initials || 'CV'}</Text>
-              <Text style={styles.silhouetteLabel}>PLAYER IMAGE</Text>
+            <View style={[styles.portraitLayer, isSmall && styles.portraitLayerSmall]}>
+              {playerImageSource ? (
+                <Image source={playerImageSource} style={styles.playerImage} resizeMode="contain" />
+              ) : (
+                <View style={[styles.silhouette, { borderColor: accent.green }]}>
+                  <Text style={[styles.silhouetteInitials, { color: accent.green }]}>{initials || 'CV'}</Text>
+                  <Text style={styles.silhouetteLabel}>PLAYER IMAGE</Text>
+                </View>
+              )}
             </View>
-          )}
-        </View>
 
-        {/* subtle lower portrait fade only; the background artwork remains untouched */}
-        <View style={[styles.portraitFade, isSmall && styles.portraitFadeSmall]}>
-          <Svg height="100%" width="100%">
-            <Defs>
-              <LinearGradient id="portraitFade" x1="0" y1="0" x2="0" y2="1">
-                <Stop offset="0" stopColor="#070807" stopOpacity="0" />
-                <Stop offset="0.58" stopColor="#070807" stopOpacity="0.14" />
-                <Stop offset="1" stopColor="#070807" stopOpacity="0.36" />
-              </LinearGradient>
-            </Defs>
-            <Rect width="100%" height="100%" fill="url(#portraitFade)" />
-          </Svg>
-        </View>
-
-        {!isSmall ? (
-          <View style={styles.topRarity}>
-            <Ionicons name="diamond-outline" size={scale.starBig + 8} color={accent.gold} />
-            <View style={styles.topStarRow}>
-              <Ionicons name="star" size={scale.starSmall + 2} color={accent.gold} />
-              <Ionicons name="star" size={scale.starSmall + 2} color="rgba(189,153,71,0.35)" />
-              <Ionicons name="star" size={scale.starSmall + 2} color="rgba(189,153,71,0.35)" />
+            <View style={[styles.portraitFade, isSmall && styles.portraitFadeSmall]}>
+              <Svg height="100%" width="100%">
+                <Defs>
+                  <LinearGradient id="portraitFade" x1="0" y1="0" x2="0" y2="1">
+                    <Stop offset="0" stopColor="#070807" stopOpacity="0" />
+                    <Stop offset="0.58" stopColor="#070807" stopOpacity="0.14" />
+                    <Stop offset="1" stopColor="#070807" stopOpacity="0.36" />
+                  </LinearGradient>
+                </Defs>
+                <Rect width="100%" height="100%" fill="url(#portraitFade)" />
+              </Svg>
             </View>
-          </View>
-        ) : null}
 
-        <View style={[styles.leftRailBackground, isSmall && styles.leftRailBackgroundSmall]}>
-          <PlayerStandardLeftRailSvg color={accent.green} />
-        </View>
-
-        {/* top-left rail */}
-        <View style={[styles.leftRail, isSmall && styles.leftRailSmall]}>
-          <View style={styles.leftRailZone}>
-            <Text style={[styles.rarity, { color: accent.green, fontSize: scale.rarity }]} numberOfLines={1}>
-              {isSmall ? formatRarity(card.rarity) : 'FOOT'}
-            </Text>
-            {isSmall ? (
-              <View style={styles.starRow}>
-                <Ionicons name="star" size={scale.starSmall} color={accent.gold} />
-                <Ionicons name="star-outline" size={scale.starSmall} color={accent.goldSoft} />
-                <Ionicons name="star-outline" size={scale.starSmall} color={accent.goldSoft} />
+            {!isSmall ? (
+              <View style={styles.topRarity}>
+                <Ionicons name="diamond-outline" size={scale.starBig + 8} color={accent.gold} />
+                <View style={styles.topStarRow}>
+                  <Ionicons name="star" size={scale.starSmall + 2} color={accent.gold} />
+                  <Ionicons name="star" size={scale.starSmall + 2} color="rgba(189,153,71,0.35)" />
+                  <Ionicons name="star" size={scale.starSmall + 2} color="rgba(189,153,71,0.35)" />
+                </View>
               </View>
-            ) : (
-              <Text style={[styles.leftRailFootValue, { color: accent.gold, fontSize: scale.shirt }]}>L</Text>
-            )}
-          </View>
-          {!isSmall ? <View style={[styles.railDivider, styles.railDividerFixed, { backgroundColor: accent.goldSoft }]} /> : null}
-          <View style={[styles.crest, { width: scale.crestSize, height: scale.crestSize }]}>
-            {crestSource ? (
-              <Image source={crestSource} style={styles.crestImage} resizeMode="contain" />
-            ) : (
-              <Text style={[styles.crestText, { color: accent.gold }]}>
-                {club.shortName ?? getInitials(club.name)}
-              </Text>
-            )}
-          </View>
-          <View style={[styles.railDivider, styles.railDividerFixed, isSmall && styles.railDividerSmall, { backgroundColor: accent.goldSoft }]} />
-          <View style={styles.leftRailZone}>
-            <Text
-              adjustsFontSizeToFit
-              minimumFontScale={0.55}
-              numberOfLines={1}
-              style={[styles.position, { color: accent.green, fontSize: scale.position }]}>
-              {formatPosition(player.position)}
-            </Text>
-            <Text style={[styles.shirt, { color: accent.gold, fontSize: scale.shirt }]}>
-              {player.shirtNumber ?? '-'}
-            </Text>
-          </View>
-          {!isSmall ? (
-            <>
-              <View style={[styles.railDivider, styles.railDividerFixed, { backgroundColor: accent.goldSoft }]} />
-              <View style={styles.flag}>
-                <View style={[styles.flagStripe, { backgroundColor: '#000' }]} />
-                <View style={[styles.flagStripe, { backgroundColor: '#b11523' }]} />
-                <View style={[styles.flagStripe, { backgroundColor: '#ebb339' }]} />
+            ) : null}
+
+            <View style={[styles.leftRailBackground, isSmall && styles.leftRailBackgroundSmall]}>
+              <PlayerStandardLeftRailSvg color={accent.green} />
+            </View>
+
+            <View style={[styles.leftRail, isSmall && styles.leftRailSmall]}>
+              <View style={styles.leftRailZone}>
+                <Text style={[styles.rarity, { color: accent.green, fontSize: scale.rarity }]} numberOfLines={1}>
+                  {isSmall ? formatRarity(card.rarity) : 'FOOT'}
+                </Text>
+                {isSmall ? (
+                  <View style={styles.starRow}>
+                    <Ionicons name="star" size={scale.starSmall} color={accent.gold} />
+                    <Ionicons name="star-outline" size={scale.starSmall} color={accent.goldSoft} />
+                    <Ionicons name="star-outline" size={scale.starSmall} color={accent.goldSoft} />
+                  </View>
+                ) : (
+                  <Text style={[styles.leftRailFootValue, { color: accent.gold, fontSize: scale.shirt }]}>L</Text>
+                )}
               </View>
-            </>
-          ) : null}
-        </View>
+              {!isSmall ? <View style={[styles.railDivider, styles.railDividerFixed, { backgroundColor: accent.goldSoft }]} /> : null}
+              <View style={[styles.crest, { width: scale.crestSize, height: scale.crestSize }]}>
+                {crestSource ? (
+                  <Image source={crestSource} style={styles.crestImage} resizeMode="contain" />
+                ) : (
+                  <Text style={[styles.crestText, { color: accent.gold }]}>
+                    {club.shortName ?? getInitials(club.name)}
+                  </Text>
+                )}
+              </View>
+              <View style={[styles.railDivider, styles.railDividerFixed, isSmall && styles.railDividerSmall, { backgroundColor: accent.goldSoft }]} />
+              <View style={styles.leftRailZone}>
+                <Text
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.55}
+                  numberOfLines={1}
+                  style={[styles.position, { color: accent.green, fontSize: scale.position }]}>
+                  {formatPosition(player.position)}
+                </Text>
+                <Text style={[styles.shirt, { color: accent.gold, fontSize: scale.shirt }]}>
+                  {player.shirtNumber ?? '-'}
+                </Text>
+              </View>
+              {!isSmall ? (
+                <>
+                  <View style={[styles.railDivider, styles.railDividerFixed, { backgroundColor: accent.goldSoft }]} />
+                  <View style={styles.flag}>
+                    <View style={[styles.flagStripe, { backgroundColor: '#000' }]} />
+                    <View style={[styles.flagStripe, { backgroundColor: '#b11523' }]} />
+                    <View style={[styles.flagStripe, { backgroundColor: '#ebb339' }]} />
+                  </View>
+                </>
+              ) : null}
+            </View>
 
-        {/* top-right season */}
-        {showSeason ? (
-          <View style={styles.topRight}>
-            <Text style={[styles.seasonLabel, { color: accent.green, fontSize: scale.season }]}>SEASON</Text>
-            <Text style={[styles.seasonValue, { color: accent.gold, fontSize: scale.seasonValue }]}>2025/26</Text>
-          </View>
-        ) : null}
+            {showSeason ? (
+              <View style={styles.topRight}>
+                <Text style={[styles.seasonLabel, { color: accent.green, fontSize: scale.season }]}>SEASON</Text>
+                <Text style={[styles.seasonValue, { color: accent.gold, fontSize: scale.seasonValue }]}>2025/26</Text>
+              </View>
+            ) : null}
 
-        {/* right vertical match date */}
-        {showVerticalEarned ? (
-          <View style={styles.verticalLabel}>
-            <Ionicons name="diamond-outline" size={scale.vertical + 4} color={accent.gold} />
-            <View style={styles.verticalTextWrap}>
-              <Text style={[styles.verticalText, { color: accent.gold, fontSize: scale.vertical }]}>
-                {verticalDate}
+            {showVerticalEarned ? (
+              <View style={styles.verticalLabel}>
+                <Ionicons name="diamond-outline" size={scale.vertical + 4} color={accent.gold} />
+                <View style={styles.verticalTextWrap}>
+                  <Text style={[styles.verticalText, { color: accent.gold, fontSize: scale.vertical }]}>
+                    {verticalDate}
+                  </Text>
+                </View>
+              </View>
+            ) : null}
+
+            <View style={[styles.nameBlock, isSmall && styles.nameBlockSmall]}>
+              <Text style={[styles.firstName, { color: accent.green, fontSize: scale.firstName }]} numberOfLines={1}>
+                {player.firstName.toUpperCase()}
+              </Text>
+              <Text
+                adjustsFontSizeToFit
+                minimumFontScale={0.55}
+                numberOfLines={1}
+                style={[
+                  styles.lastName,
+                  {
+                    color: accent.goldShine,
+                    fontSize: scale.lastName,
+                    letterSpacing: scale.lastNameSpacing,
+                    lineHeight: scale.lastName * 0.95,
+                  },
+                ]}>
+                {player.lastName.toUpperCase()}
+              </Text>
+              <Ionicons name="star" size={scale.starBig} color={accent.gold} style={styles.nameStar} />
+              <Text style={[styles.clubName, { color: accent.green, fontSize: scale.club }]} numberOfLines={1}>
+                {club.name.toUpperCase()}
               </Text>
             </View>
-          </View>
-        ) : null}
 
-        {/* name block */}
-        <View style={[styles.nameBlock, isSmall && styles.nameBlockSmall]}>
-          <Text style={[styles.firstName, { color: accent.green, fontSize: scale.firstName }]} numberOfLines={1}>
-            {player.firstName.toUpperCase()}
-          </Text>
-          <Text
-            adjustsFontSizeToFit
-            minimumFontScale={0.55}
-            numberOfLines={1}
-            style={[
-              styles.lastName,
-              {
-                color: accent.goldShine,
-                fontSize: scale.lastName,
-                letterSpacing: scale.lastNameSpacing,
-                lineHeight: scale.lastName * 0.95,
-              },
-            ]}>
-            {player.lastName.toUpperCase()}
-          </Text>
-          <Ionicons name="star" size={scale.starBig} color={accent.gold} style={styles.nameStar} />
-          <Text style={[styles.clubName, { color: accent.green, fontSize: scale.club }]} numberOfLines={1}>
-            {club.name.toUpperCase()}
-          </Text>
-        </View>
-
-        {showDetailedStats ? (
-          <View style={styles.statsRow}>
-            {isLarge ? (
-              <>
+            {showDetailedStats ? (
+              <View style={styles.statsRow}>
+                {isLarge ? (
+                  <>
+                    <FullStatCell
+                      icon={STAT_ICONS.match}
+                      value={frontMatchScore}
+                      scale={scale}
+                      accent={accent}
+                      scoreRows={frontMatchScoreRows}
+                    />
+                    <StatDivider color={accent.goldSoft} />
+                  </>
+                ) : null}
                 <FullStatCell
-                  icon={STAT_ICONS.match}
-                  value={frontMatchScore}
+                  icon={STAT_ICONS.position}
+                  value={positionLong(player.position)}
                   scale={scale}
                   accent={accent}
-                  scoreRows={frontMatchScoreRows}
                 />
                 <StatDivider color={accent.goldSoft} />
-              </>
-            ) : null}
-            <FullStatCell
-              icon={STAT_ICONS.position}
-              value={positionLong(player.position)}
-              scale={scale}
-              accent={accent}
-            />
-            <StatDivider color={accent.goldSoft} />
-            {isLarge ? (
-              <>
-                <FullStatCell icon={STAT_ICONS.traits} value="x 3" scale={scale} accent={accent} />
+                {isLarge ? (
+                  <>
+                    <FullStatCell icon={STAT_ICONS.traits} value="x 3" scale={scale} accent={accent} />
+                    <StatDivider color={accent.goldSoft} />
+                  </>
+                ) : null}
+                <FullStatCell
+                  icon={STAT_ICONS.bond}
+                  value={String(card.bondLevel ?? 1)}
+                  scale={scale}
+                  accent={accent}
+                />
                 <StatDivider color={accent.goldSoft} />
-              </>
-            ) : null}
-            <FullStatCell
-              icon={STAT_ICONS.bond}
-              value={String(card.bondLevel ?? 1)}
-              scale={scale}
-              accent={accent}
-            />
-            <StatDivider color={accent.goldSoft} />
-            <FullStatCell
-              icon={STAT_ICONS.origin}
-              value={formatOriginStacked(origin)}
-              scale={scale}
-              accent={accent}
-              wide
-            />
-          </View>
-        ) : (
-          <View style={styles.compactBadges}>
-            <View style={[styles.compactBadge, { borderColor: accent.goldSoft }]}>
-              <Ionicons name="medal-outline" size={scale.statIcon} color={accent.gold} />
-              <Text style={[styles.compactBadgeText, { color: accent.gold, fontSize: scale.statValue }]}>
-                {card.bondLevel ?? 1}
-              </Text>
-            </View>
-            <View style={[styles.compactBadge, { borderColor: accent.goldSoft }]}>
-              <Ionicons name="checkmark" size={scale.statIcon} color={accent.gold} />
-            </View>
-          </View>
-        )}
+                <FullStatCell
+                  icon={STAT_ICONS.origin}
+                  value={formatOriginStacked(origin)}
+                  scale={scale}
+                  accent={accent}
+                  wide
+                />
+              </View>
+            ) : (
+              <View style={styles.compactBadges}>
+                <View style={[styles.compactBadge, { borderColor: accent.goldSoft }]}>
+                  <Ionicons name="medal-outline" size={scale.statIcon} color={accent.gold} />
+                  <Text style={[styles.compactBadgeText, { color: accent.gold, fontSize: scale.statValue }]}>
+                    {card.bondLevel ?? 1}
+                  </Text>
+                </View>
+                <View style={[styles.compactBadge, { borderColor: accent.goldSoft }]}>
+                  <Ionicons name="checkmark" size={scale.statIcon} color={accent.gold} />
+                </View>
+              </View>
+            )}
 
-        {/* footer */}
-        {isSmall ? (
-          <View style={[styles.footer, styles.footerSmall]}>
-            <View style={styles.footerLeft}>
-              <Ionicons name="qr-code-outline" size={scale.footerIcon} color={accent.gold} />
-              <Text style={[styles.footerValue, { color: accent.gold, fontSize: scale.footerValue }]} numberOfLines={1}>
-                {formatEditionTight(card.editionNumber, card.editionSize)}
-              </Text>
-            </View>
-            <View style={[styles.originBadge, { borderColor: accent.gold, width: scale.badgeSize, height: scale.badgeSize, borderRadius: scale.badgeSize / 2 }]}>
-              <Ionicons name="checkmark" size={scale.badgeSize * 0.7} color={accent.gold} />
+            {isSmall ? (
+              <View style={[styles.footer, styles.footerSmall]}>
+                <View style={styles.footerLeft}>
+                  <Ionicons name="qr-code-outline" size={scale.footerIcon} color={accent.gold} />
+                  <Text style={[styles.footerValue, { color: accent.gold, fontSize: scale.footerValue }]} numberOfLines={1}>
+                    {formatEditionTight(card.editionNumber, card.editionSize)}
+                  </Text>
+                </View>
+                <View style={[styles.originBadge, { borderColor: accent.gold, width: scale.badgeSize, height: scale.badgeSize, borderRadius: scale.badgeSize / 2 }]}>
+                  <Ionicons name="checkmark" size={scale.badgeSize * 0.7} color={accent.gold} />
+                </View>
+              </View>
+            ) : (
+              <View style={styles.v2Footer}>
+                {showInternalStatus ? (
+                  <View style={styles.v2StatusLeft}>
+                    <Ionicons name="lock-closed-outline" size={scale.statusIcon} color={curvao.colors.muted} />
+                    <Text style={[styles.statusText, { fontSize: scale.statusText }]}>
+                      {card.archived ? 'ARCHIVED' : 'NOT ARCHIVED'}
+                    </Text>
+                  </View>
+                ) : null}
+                <View style={styles.v2Edition}>
+                  <Text style={[styles.footerValue, { color: accent.gold, fontSize: scale.footerValue }]} numberOfLines={1}>
+                    {formatEditionTight(card.editionNumber, card.editionSize)}
+                  </Text>
+                </View>
+                {showInternalStatus ? (
+                  <View style={styles.v2StatusRight}>
+                    <Text style={[styles.statusText, { fontSize: scale.statusText }]}>
+                      {card.bound ? 'BOUND' : card.tradable ? 'TRADABLE' : 'NOT TRADABLE'}
+                    </Text>
+                    <Ionicons name="swap-horizontal" size={scale.statusIcon} color={curvao.colors.muted} />
+                  </View>
+                ) : null}
+              </View>
+            )}
+            <View style={styles.frameOverlay}>
+              <PlayerStandardFrameSvg layer="overlay" rarity={card.rarity} />
             </View>
           </View>
         ) : (
-          <View style={styles.v2Footer}>
-            {showInternalStatus ? (
-              <View style={styles.v2StatusLeft}>
-                <Ionicons name="lock-closed-outline" size={scale.statusIcon} color={curvao.colors.muted} />
-                <Text style={[styles.statusText, { fontSize: scale.statusText }]}>
-                  {card.archived ? 'ARCHIVED' : 'NOT ARCHIVED'}
-                </Text>
-              </View>
-            ) : null}
-            <View style={styles.v2Edition}>
-              <Text style={[styles.footerValue, { color: accent.gold, fontSize: scale.footerValue }]} numberOfLines={1}>
-                {formatEditionTight(card.editionNumber, card.editionSize)}
-              </Text>
-            </View>
-            {showInternalStatus ? (
-              <View style={styles.v2StatusRight}>
-                <Text style={[styles.statusText, { fontSize: scale.statusText }]}>
-                  {card.bound ? 'BOUND' : card.tradable ? 'TRADABLE' : 'NOT TRADABLE'}
-                </Text>
-                <Ionicons name="swap-horizontal" size={scale.statusIcon} color={curvao.colors.muted} />
-              </View>
-            ) : null}
+          <View style={[styles.flipFace, styles.flipBackFace]}>
+            <PlayerStandardCardBack player={player} club={club} match={match} card={card} />
           </View>
         )}
-          </View>
-        <View style={styles.frameOverlay}>
-          <PlayerStandardFrameSvg layer="overlay" rarity={card.rarity} />
-        </View>
-        </Animated.View>
-        {canFlip ? (
-          <Animated.View style={[styles.flipFace, styles.flipBackFace, backAnimatedStyle]}>
-            <PlayerStandardCardBack player={player} club={club} match={match} card={card} />
-          </Animated.View>
-        ) : null}
       </View>
       </Pressable>
     </View>
@@ -683,6 +644,7 @@ const styles = StyleSheet.create({
     width: '100%',
     overflow: 'visible',
     zIndex: 1,
+    aspectRatio: 987 / 1414.5,
   },
   flipPressablePassthrough: {
     pointerEvents: 'none',
@@ -695,9 +657,11 @@ const styles = StyleSheet.create({
     position: 'relative',
     width: '100%',
   },
+  cardFixedAspect: {
+    aspectRatio: 987 / 1414.5,
+  },
   flipFace: {
     ...StyleSheet.absoluteFillObject,
-    backfaceVisibility: 'hidden',
     backgroundColor: 'transparent',
     borderRadius: 10,
     overflow: 'visible',

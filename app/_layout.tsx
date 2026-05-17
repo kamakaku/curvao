@@ -14,8 +14,21 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          contentStyle: { backgroundColor: '#000' }, // Ensure new screens have a solid background
+        }}
+      >
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen 
+          name="(tabs)/matches/[id]" 
+          options={{ 
+            headerShown: false,
+            presentation: 'card',
+            contentStyle: { backgroundColor: '#000' }
+          }} 
+        />
       </Stack>
       <StatusBar style="auto" />
     </ThemeProvider>

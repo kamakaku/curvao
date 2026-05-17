@@ -14,7 +14,12 @@ type Props = PropsWithChildren<{
 export function CurvaoScreen({ children, padded = true }: Props) {
   return (
     <View style={styles.root}>
-      {/* Scrollable content on top, background is now handled by the root layout */}
+      {/* Individual background per screen to ensure opacity */}
+      <Image 
+        source={backgroundSource} 
+        style={StyleSheet.absoluteFill}
+        contentFit="cover"
+      />
       <ScrollView 
         style={styles.scrollView}
         contentContainerStyle={[styles.content, padded && styles.padded]}
@@ -29,10 +34,6 @@ export function CurvaoScreen({ children, padded = true }: Props) {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: 'transparent',
-  },
-  backgroundContainer: {
-    ...StyleSheet.absoluteFillObject,
     backgroundColor: '#000',
   },
   scrollView: {

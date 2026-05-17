@@ -3,6 +3,7 @@ import { Image, ImageBackground, Pressable, StyleSheet, Text, View } from 'react
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { TextureOverlay } from '@/src/components/ui/TextureOverlay';
+import { CurvaoActionButton } from '@/src/components/dashboard/CurvaoActionButton';
 import { curvao } from '@/src/theme/curvaoTheme';
 import type { Match } from '@/src/types/models';
 
@@ -21,7 +22,7 @@ const ARTIFACT_COLORS = {
   borderGold: 'rgba(216,170,77,0.28)',
 };
 
-export function DashboardNextMatch({ match }: { match: Match }) {
+export function DashboardNextMatch({ match, onPress }: { match: Match; onPress?: () => void }) {
   // Mocking countdown for the UI look
   const countdown = {
     days: '02',
@@ -35,7 +36,7 @@ export function DashboardNextMatch({ match }: { match: Match }) {
       <Text style={styles.kicker}>NÄCHSTES SPIEL</Text>
       
       {/* Main Artifact Card */}
-      <View style={styles.artifactCard}>
+      <Pressable onPress={onPress} style={({ pressed }) => [styles.artifactCard, pressed && styles.artifactPressed]}>
         <ImageBackground source={stadiumBg} style={styles.background} imageStyle={styles.backgroundImage}>
           {/* Layered Overlays for Artifact feel */}
           <LinearGradient
@@ -83,47 +84,32 @@ export function DashboardNextMatch({ match }: { match: Match }) {
             </View>
           </View>
         </ImageBackground>
-      </View>
+      </Pressable>
 
       {/* Artifact Action Buttons */}
       <View style={styles.actions}>
-        <Pressable 
-          accessibilityRole="button"
-          style={({ pressed }) => [styles.actionButton, styles.liveWatch, pressed && styles.pressed]}
-        >
-          <View style={styles.actionIconContainer}>
-            <Ionicons name="tv-sharp" size={20} color={curvao.colors.greenBright} />
-          </View>
-          <View style={styles.actionTextContainer}>
-            <Text style={styles.actionTitle}>LIVE WATCH</Text>
-            <Text style={styles.actionSub}>Spiel live im TV</Text>
-            <View style={styles.rewardRow}>
-              <View style={styles.greenDot} />
-              <Text style={styles.rewardText}>Belohnung sichern</Text>
-            </View>
-          </View>
-        </Pressable>
+        <CurvaoActionButton
+          variant="live"
+          title="LIVE WATCH"
+          subtitle="Spiel live im TV/Radio"
+          status="Belohnung sichern"
+          icon="tv-outline"
+          onPress={onPress}
+        />
 
-        <Pressable 
-          accessibilityRole="button"
-          style={({ pressed }) => [styles.actionButton, styles.stadiumCheckin, pressed && styles.pressed]}
-        >
-          <View style={[styles.actionIconContainer, styles.darkIconBg]}>
-            <Ionicons name="location-sharp" size={20} color={ARTIFACT_COLORS.background} />
-          </View>
-          <View style={styles.actionTextContainer}>
-            <Text style={[styles.actionTitle, styles.darkText]}>STADIUM CHECK-IN</Text>
-            <Text style={[styles.actionSub, styles.darkText]}>Im Stadion einchecken</Text>
-            <View style={styles.rewardRow}>
-              <Ionicons name="checkmark-circle-sharp" size={12} color={curvao.colors.green} />
-              <Text style={[styles.rewardText, styles.darkText]}>Stadium Card erhalten</Text>
-            </View>
-          </View>
-        </Pressable>
+        <CurvaoActionButton
+          variant="stadium"
+          title="STADIUM CHECK-IN"
+          subtitle="Im Stadion einchecken"
+          status="Stadium Card erhalten"
+          icon="location"
+          onPress={onPress}
+        />
       </View>
     </View>
   );
 }
+
 
 function CountdownColumn({ value, label }: { value: string; label: string }) {
   return (
@@ -150,6 +136,10 @@ const styles = StyleSheet.create({
     shadowRadius: 20,
     shadowOffset: { width: 0, height: 12 },
     elevation: 8,
+  },
+  artifactPressed: {
+    opacity: 0.9,
+    transform: [{ scale: 0.98 }],
   },
   background: {
     width: '100%',

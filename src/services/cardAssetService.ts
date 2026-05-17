@@ -9,11 +9,12 @@ const clubCrestSources: Record<string, ImageSourcePropType> = {
 };
 
 const playerPlaceholder = require('@/assets/cards/player_placholder.png');
+const curvaoCrestFallback = require('@/assets/logo_crest.png');
 
 export function getPlayerImageSource(playerId?: string) {
   return (playerId ? playerImageSources[playerId] : undefined) ?? playerPlaceholder;
 }
 
 export function getClubCrestSource(clubId?: string) {
-  return clubId ? clubCrestSources[clubId] : undefined;
+  return (clubId ? clubCrestSources[clubId] : undefined) ?? curvaoCrestFallback;
 }

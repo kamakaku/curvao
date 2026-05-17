@@ -7,20 +7,55 @@ import { StyleSheet, Text, View } from 'react-native';
 import { TextureOverlay } from '@/src/components/ui/TextureOverlay';
 import { getClubCrestSource, getPlayerImageSource } from '@/src/services/cardAssetService';
 import { formatRarity } from '@/src/services/cardTemplateService';
-import { curvao } from '@/src/theme/curvaoTheme';
 import type { CardOrigin, Rarity, UserCard, Player, Club } from '@/src/types/models';
 
 const stadiumBackgroundSource = require('@/assets/cards/player_standard_v2_bg.png');
 
-const ARTIFACT_STYLE = {
+const CURVAO = {
   surface: '#121614',
+  surfaceSoft: '#191E1B',
   gold: '#D8AA4D',
   goldSoft: '#F0C96B',
-  textPrimary: '#F4F1E8',
-  textMuted: '#A7A39A',
+  mint: '#22C878',
+  text: '#F4F1E8',
+  muted: '#A7A39A',
   borderGold: 'rgba(216,170,77,0.24)',
-  verifiedMint: '#22C878',
 };
+
+type OriginDisplay = {
+  label: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  tone: 'neutral' | 'mint' | 'gold' | 'special';
+};
+
+function getPlayerCardOriginDisplay(origin: CardOrigin): OriginDisplay {
+  switch (origin) {
+    case 'starter_pack':
+      return { label: 'STARTER', icon: 'albums-outline', tone: 'neutral' };
+    case 'fan_claimed':
+    case 'self_earned':
+      return { label: 'FAN CLAIMED', icon: 'archive-outline', tone: 'neutral' };
+    case 'live_verified':
+    case 'logged_viewing':
+      return { label: 'LIVE VERIFIED', icon: 'eye-outline', tone: 'mint' };
+    case 'stadium_verified':
+      return { label: 'STADIUM VERIFIED', icon: 'shield-checkmark-outline', tone: 'gold' };
+    case 'special_moment':
+      return { label: 'SPECIAL MOMENT', icon: 'sparkles-outline', tone: 'special' };
+    case 'club_reward':
+    case 'club_drop':
+    case 'event_drop':
+      return { label: 'CLUB REWARD', icon: 'ribbon-outline', tone: 'neutral' };
+    case 'season_reward':
+      return { label: 'SEASON REWARD', icon: 'trophy-outline', tone: 'gold' };
+    default:
+      return { label: 'COLLECTED', icon: 'checkmark-circle-outline', tone: 'neutral' };
+  }
+}
+
+function formatBondLevel(level?: number) {
+  return `BOND ${level ?? 1}`;
+}
 
 type PlayerCardPreviewProps = {
   card: UserCard;
@@ -31,38 +66,7 @@ type PlayerCardPreviewProps = {
 export function PlayerCardPreview({ card, player, club }: PlayerCardPreviewProps) {
   const playerImage = getPlayerImageSource(player.id);
   const clubCrest = getClubCrestSource(club.id);
-
-  const renderOriginIcon = () => {
-    let iconName: keyof typeof Ionicons.glyphMap = 'card-outline';
-    let label = 'CLAIMED';
-
-    switch (card.origin) {
-      case 'stadium_verified':
-        iconName = 'shield-checkmark-outline';
-        label = 'STADIUM';
-        break;
-      case 'logged_viewing':
-        iconName = 'tv-outline';
-        label = 'LIVE';
-        break;
-      case 'self_earned':
-        iconName = 'archive-outline';
-        label = 'CLAIMED';
-        break;
-      case 'club_drop':
-      case 'event_drop':
-        iconName = 'albums-outline';
-        label = 'PACK';
-        break;
-    }
-
-    return (
-      <View style={styles.originBadge}>
-        <Ionicons name={iconName} size={10} color={ARTIFACT_STYLE.verifiedMint} />
-        <Text style={styles.originLabel}>{label}</Text>
-      </View>
-    );
-  };
+  const originDisplay = getPlayerCardOriginDisplay(card.origin);
 
   const renderStars = (rarity: Rarity) => {
     const stars = rarity === 'standard' ? 1 : rarity === 'rare' ? 2 : rarity === 'epic' ? 3 : 5;
@@ -73,12 +77,38 @@ export function PlayerCardPreview({ card, player, club }: PlayerCardPreviewProps
             key={i} 
             name={i < stars ? "star" : "star-outline"} 
             size={8} 
-            color={ARTIFACT_STYLE.gold} 
+            color={CURVAO.gold} 
           />
         ))}
       </View>
     );
   };
+
+  const getOriginBadgeStyle = (tone: OriginDisplay['tone']) => {
+    switch (tone) {
+      case 'mint':
+        return { 
+          container: styles.badgeMint, 
+          text: { color: CURVAO.mint },
+          iconColor: CURVAO.mint 
+        };
+      case 'gold':
+      case 'special':
+        return { 
+          container: styles.badgeGold, 
+          text: { color: CURVAO.goldSoft },
+          iconColor: CURVAO.goldSoft 
+        };
+      default:
+        return { 
+          container: styles.badgeNeutral, 
+          text: { color: CURVAO.muted },
+          iconColor: CURVAO.muted 
+        };
+    }
+  };
+
+  const badgeStyle = getOriginBadgeStyle(originDisplay.tone);
 
   return (
     <View style={styles.container}>
@@ -114,7 +144,7 @@ export function PlayerCardPreview({ card, player, club }: PlayerCardPreviewProps
 
         {/* Content Overlay - Name & Stats */}
         <LinearGradient
-          colors={['transparent', 'rgba(8, 10, 9, 0.8)', 'rgba(8, 10, 9, 1)']}
+          colors={['transparent', 'rgba(8, 10, 9, 0.6)', 'rgba(8, 10, 9, 0.95)']}
           style={styles.contentOverlay}
         >
           <View style={styles.bottomInfo}>
@@ -130,12 +160,20 @@ export function PlayerCardPreview({ card, player, club }: PlayerCardPreviewProps
             </Text>
             
             <View style={styles.footerRow}>
-              {renderOriginIcon()}
-              {card.bondLevel > 0 && (
-                <View style={styles.bondBadge}>
-                  <Text style={styles.bondText}>BOND {card.bondLevel}</Text>
-                </View>
-              )}
+              <View style={[styles.originBadge, badgeStyle.container]}>
+                <Ionicons name={originDisplay.icon} size={10} color={badgeStyle.iconColor} />
+                <Text 
+                  style={[styles.originLabel, badgeStyle.text]}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                >
+                  {originDisplay.label}
+                </Text>
+              </View>
+              
+              <View style={styles.bondBadge}>
+                <Text style={styles.bondText}>{formatBondLevel(card.bondLevel)}</Text>
+              </View>
             </View>
           </View>
         </LinearGradient>
@@ -147,7 +185,7 @@ export function PlayerCardPreview({ card, player, club }: PlayerCardPreviewProps
 const styles = StyleSheet.create({
   container: {
     width: '100%',
-    aspectRatio: 0.7, // Classic card ratio
+    aspectRatio: 0.7, 
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.4,
@@ -156,10 +194,10 @@ const styles = StyleSheet.create({
   },
   cardBase: {
     flex: 1,
-    backgroundColor: ARTIFACT_STYLE.surface,
+    backgroundColor: CURVAO.surface,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: ARTIFACT_STYLE.borderGold,
+    borderColor: CURVAO.borderGold,
     overflow: 'hidden',
     position: 'relative',
   },
@@ -170,11 +208,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    padding: 8,
+    padding: 10,
     zIndex: 20,
   },
   rarityText: {
-    color: ARTIFACT_STYLE.gold,
+    color: CURVAO.gold,
     fontSize: 8,
     fontWeight: '900',
     letterSpacing: 1,
@@ -185,15 +223,15 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   clubCrest: {
-    width: 24,
-    height: 24,
+    width: 26,
+    height: 26,
   },
   imageContainer: {
     position: 'absolute',
     top: 10,
     left: 0,
     right: 0,
-    bottom: 0,
+    bottom: 20,
     zIndex: 5,
   },
   playerImage: {
@@ -205,58 +243,74 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    height: '50%',
+    height: '60%',
     justifyContent: 'flex-end',
-    padding: 10,
+    padding: 12,
     zIndex: 10,
   },
   bottomInfo: {
     gap: 2,
   },
   playerName: {
-    color: ARTIFACT_STYLE.textPrimary,
-    fontSize: 16,
+    color: CURVAO.text,
+    fontSize: 20,
     fontWeight: '900',
     letterSpacing: 0.5,
   },
   playerMeta: {
-    color: ARTIFACT_STYLE.textMuted,
-    fontSize: 9,
+    color: CURVAO.muted,
+    fontSize: 10,
     fontWeight: '700',
     letterSpacing: 0.5,
+    marginBottom: 4,
   },
   footerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 6,
+    marginTop: 4,
   },
   originBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: 'rgba(34, 200, 120, 0.1)',
     paddingHorizontal: 6,
-    paddingVertical: 2,
+    paddingVertical: 3,
     borderRadius: 4,
+    maxWidth: '70%',
+  },
+  badgeNeutral: {
+    backgroundColor: 'rgba(167, 163, 154, 0.1)',
+    borderWidth: 0.5,
+    borderColor: 'rgba(167, 163, 154, 0.2)',
+  },
+  badgeMint: {
+    backgroundColor: 'rgba(34, 200, 120, 0.1)',
     borderWidth: 0.5,
     borderColor: 'rgba(34, 200, 120, 0.3)',
   },
+  badgeGold: {
+    backgroundColor: 'rgba(216, 170, 77, 0.15)',
+    borderWidth: 0.5,
+    borderColor: 'rgba(216, 170, 77, 0.3)',
+  },
   originLabel: {
-    color: ARTIFACT_STYLE.verifiedMint,
-    fontSize: 7,
+    fontSize: 7.5,
     fontWeight: '900',
     letterSpacing: 0.5,
   },
   bondBadge: {
-    backgroundColor: 'rgba(216, 170, 77, 0.15)',
-    paddingHorizontal: 5,
-    paddingVertical: 2,
+    backgroundColor: 'rgba(216, 170, 77, 0.12)',
+    paddingHorizontal: 6,
+    paddingVertical: 3,
     borderRadius: 4,
+    borderWidth: 0.5,
+    borderColor: 'rgba(216, 170, 77, 0.2)',
   },
   bondText: {
-    color: ARTIFACT_STYLE.gold,
-    fontSize: 7,
+    color: CURVAO.gold,
+    fontSize: 8,
     fontWeight: '900',
+    letterSpacing: 0.2,
   },
 });

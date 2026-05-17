@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -16,6 +17,7 @@ import { curvao } from '@/src/theme/curvaoTheme';
 import type { Match, UserCard } from '@/src/types/models';
 
 export default function HomeScreen() {
+  const router = useRouter();
   const [nextMatch, setNextMatch] = useState<Match>();
   const [latestCards, setLatestCards] = useState<UserCard[]>([]);
   const [selectedCard, setSelectedCard] = useState<UserCard>();
@@ -37,7 +39,10 @@ export default function HomeScreen() {
         {/* Next Match Section */}
         <View style={styles.section}>
           {nextMatch ? (
-            <DashboardNextMatch match={nextMatch} />
+            <DashboardNextMatch 
+              match={nextMatch} 
+              onPress={() => router.push(`/matches/${nextMatch.id}`)} 
+            />
           ) : (
             <EmptyState title="No matches yet" />
           )}
