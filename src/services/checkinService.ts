@@ -10,6 +10,17 @@ export async function getUserCheckins(userId: string): Promise<Checkin[]> {
   );
 }
 
+export async function hasOtherActiveStadiumCheckin(userId: string, currentMatchId?: string): Promise<boolean> {
+  const checkins = await getUserCheckins(userId);
+
+  return checkins.some(
+    (checkin) =>
+      checkin.type === 'stadium' &&
+      checkin.status === 'verified' &&
+      checkin.match !== currentMatchId,
+  );
+}
+
 export async function createCheckin(userId: string, matchId: string, type: CheckinType): Promise<{ checkin: Checkin; cards: UserCard[] }> {
   const payload: Omit<Checkin, 'id'> = {
     user: userId,

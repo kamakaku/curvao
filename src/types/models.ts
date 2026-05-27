@@ -17,6 +17,18 @@ export type CardOrigin =
   | 'season_reward';
 export type CheckinType = 'stadium' | 'viewing';
 export type MatchStatus = 'scheduled' | 'live' | 'finished';
+export type CardSetType = 'club_season' | 'matchday' | 'stadium' | 'moment' | 'origin' | 'special';
+export type CardSetStatus = 'draft' | 'upcoming' | 'active' | 'final' | 'archived';
+export type CardSetSlotType =
+  | 'match_card'
+  | 'stadium_card'
+  | 'player_card'
+  | 'moment_card'
+  | 'mvp_card'
+  | 'attendance_card'
+  | 'live_watch_reward'
+  | 'stadium_checkin_reward'
+  | 'completion_reward';
 export type CardEventType =
   | 'earned'
   | 'traded_in'
@@ -121,6 +133,73 @@ export type Checkin = {
   note?: string;
 };
 
+export type LiveWatchSession = {
+  id: string;
+  user: string;
+  match: string;
+  status: 'active' | 'completed' | 'cancelled' | 'expired';
+  startedAt: string;
+  requiredSeconds: number;
+  watchedSeconds: number;
+  lastHeartbeatAt?: string;
+  completedAt?: string;
+  checkpointCount?: number;
+  rewardClaimed: boolean;
+  metadata?: string;
+};
+
+export type SetCompletionReward = {
+  xp?: number;
+  badgeId?: string;
+  frameVariant?: string;
+  title?: string;
+  rewardPackageType?: string;
+};
+
+export type CardSet = {
+  id: string;
+  key: string;
+  type: CardSetType;
+  title: string;
+  subtitle?: string;
+  name?: string;
+  clubId?: string;
+  clubName?: string;
+  matchId?: string;
+  stadiumId?: string;
+  season?: string;
+  description?: string;
+  status: CardSetStatus;
+  featured?: boolean;
+  active?: boolean;
+  totalSlots?: number;
+  completionReward?: SetCompletionReward;
+  createdAt?: string;
+  updatedAt?: string;
+  expand?: {
+    match?: Match;
+    club?: Club;
+    stadium?: Stadium;
+  };
+};
+
+export type CardSetSlot = {
+  id: string;
+  setId: string;
+  slotType: CardSetSlotType;
+  cardTemplateId?: string;
+  playerId?: string;
+  matchId?: string;
+  stadiumId?: string;
+  clubId?: string;
+  rarity?: Rarity;
+  required: boolean;
+  sortOrder: number;
+  title?: string;
+  hint?: string;
+  unlockState?: 'available' | 'locked_until_match' | 'locked_until_final' | 'reward_only';
+};
+
 export type UserCard = {
   id: string;
   user: string;
@@ -200,6 +279,22 @@ export type CardEvent = {
   relatedCard?: string;
   relatedMatch?: string;
   createdAt: string;
+};
+
+export type RewardEvent = {
+  id: string;
+  user: string;
+  actionType: 'starter_pack' | 'live_watch' | 'stadium_checkin' | 'set_completion' | 'manual_admin';
+  sourceType: 'match' | 'stadium' | 'set' | 'card_set' | 'pack' | 'card_template';
+  sourceId?: string;
+  match?: string;
+  rewardType: 'card' | 'xp' | 'bond_xp' | 'pack' | 'badge';
+  card?: string;
+  xpAmount?: number;
+  bondXpAmount?: number;
+  status: 'granted' | 'skipped' | 'failed';
+  createdAt: string;
+  metadata?: string;
 };
 
 export type Achievement = {

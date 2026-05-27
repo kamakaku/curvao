@@ -1,3 +1,5 @@
+import { getPocketBaseFileUrl } from '@/src/services/pocketbase';
+import type { Club } from '@/src/types/models';
 import type { ImageSourcePropType } from 'react-native';
 
 const playerImageSources: Record<string, ImageSourcePropType> = {
@@ -15,6 +17,15 @@ export function getPlayerImageSource(playerId?: string) {
   return (playerId ? playerImageSources[playerId] : undefined) ?? playerPlaceholder;
 }
 
-export function getClubCrestSource(clubId?: string) {
-  return (clubId ? clubCrestSources[clubId] : undefined) ?? curvaoCrestFallback;
+export function getClubCrestSource(club?: string | Club) {
+  if (club && typeof club === 'object') {
+    const crestUrl = getPocketBaseFileUrl(club, club.crest);
+    if (crestUrl) {
+      return { uri: crestUrl };
+    }
+
+    return clubCrestSources[club.id] ?? curvaoCrestFallback;
+  }
+
+  return (club ? clubCrestSources[club] : undefined) ?? curvaoCrestFallback;
 }

@@ -84,6 +84,7 @@ export type PlayerStandardCardProps = {
   };
   size?: 'small' | 'medium' | 'large';
   showFooterStatus?: boolean;
+  isFlipped?: boolean;
 };
 
 type RarityAccent = {
@@ -302,6 +303,7 @@ export function PlayerStandardCard({
   card,
   size = 'medium',
   showFooterStatus = true,
+  isFlipped,
 }: PlayerStandardCardProps) {
   const scale = sizeStyles[size];
   const isSmall = size === 'small';
@@ -318,14 +320,15 @@ export function PlayerStandardCard({
   const origin = formatOrigin(card.origin);
   const playerImageSource = player.imageSource ?? (player.imageUrl ? { uri: player.imageUrl } : undefined);
   const crestSource = club.crestSource ?? (club.crestUrl ? { uri: club.crestUrl } : undefined);
-  const [flipped, setFlipped] = useState(false);
+  const [internalFlipped, setInternalFlipped] = useState(false);
+  const flipped = isFlipped !== undefined ? isFlipped : internalFlipped;
   const canFlip = !isSmall;
 
   function toggleFlip() {
     if (!canFlip) {
       return;
     }
-    setFlipped(!flipped);
+    setInternalFlipped(!flipped);
   }
 
   return (

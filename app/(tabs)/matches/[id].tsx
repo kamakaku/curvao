@@ -1,181 +1,278 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Alert, StyleSheet, Text, View, ScrollView } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { CardDetailPanel } from '@/src/components/CardDetailPanel';
-import { CardTile } from '@/src/components/CardTile';
 import { CurvaoScreen } from '@/src/components/CurvaoScreen';
 import { EmptyState } from '@/src/components/EmptyState';
-import { PrimaryButton } from '@/src/components/PrimaryButton';
-import { RarityBadge } from '@/src/components/RarityBadge';
-import { CardRenderer } from '@/src/components/cards/CardRenderer';
+import { LiveWatchPrimaryCard } from '@/src/components/match/LiveWatchPrimaryCard';
+import { MatchHero } from '@/src/components/match/MatchHero';
+import { MatchInfoGrid } from '@/src/components/match/MatchInfoGrid';
+import { MatchdaySetPreview } from '@/src/components/match/MatchdaySetPreview';
 import { getCurrentUser } from '@/src/services/authService';
-import { createCheckin } from '@/src/services/checkinService';
-import { getUserCards } from '@/src/services/cardService';
-import { getClubName, getMatchById } from '@/src/services/matchService';
+import { getMatchdaySetPreview, type MatchdaySetPreview as MatchdaySetPreviewData } from '@/src/services/cardSetService';
+import { createCheckin, getUserCheckins } from '@/src/services/checkinService';
+import { getMatchById } from '@/src/services/matchService';
 import { curvao } from '@/src/theme/curvaoTheme';
 import type { CheckinType, Match, UserCard } from '@/src/types/models';
+import { getMatchViewState } from '@/src/utils/matchUtils';
+
+const FIXED_HERO_HEIGHT = 276;
 
 export default function MatchDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+
   const [match, setMatch] = useState<Match>();
-  const [createdCards, setCreatedCards] = useState<UserCard[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [userId, setUserId] = useState<string>();
+  const [loading, setLoading] = useState(true);
+  const [working, setWorking] = useState(false);
   const [selectedCard, setSelectedCard] = useState<UserCard>();
-  const [matchCard, setMatchCard] = useState<UserCard>();
+  const [matchdayPreview, setMatchdayPreview] = useState<MatchdaySetPreviewData | null>(null);
+  const [stadiumCheckedIn, setStadiumCheckedIn] = useState(false);
 
   useEffect(() => {
-    if (id) {
-      getMatchById(id).then(setMatch);
-      getCurrentUser().then(user => {
-        getUserCards(user.id).then(cards => {
-          const found = cards.find(c => c.match === id && c.type === 'match');
-          setMatchCard(found);
-        });
-      });
+    let mounted = true;
+
+    async function load() {
+      if (!id) return;
+      try {
+        setLoading(true);
+        const [resolvedMatch, user] = await Promise.all([getMatchById(id), getCurrentUser()]);
+        const checkins = await getUserCheckins(user.id);
+
+        if (!mounted) return;
+
+        if (!resolvedMatch) {
+          setMatch(undefined);
+          setUserId(user.id);
+          setMatchdayPreview(null);
+          setStadiumCheckedIn(false);
+          return;
+        }
+
+        setMatch(resolvedMatch);
+        setUserId(user.id);
+        setStadiumCheckedIn(checkins.some((checkin) => checkin.match === id && checkin.type === 'stadium' && checkin.status === 'verified'));
+        const preview = await getMatchdaySetPreview({ userId: user.id, matchId: resolvedMatch.id }).catch(() => null);
+        if (mounted) setMatchdayPreview(preview);
+      } finally {
+        if (mounted) setLoading(false);
+      }
     }
+
+    void load();
+    return () => {
+      mounted = false;
+    };
   }, [id]);
 
+  async function reloadUserState() {
+    if (!id || !userId) return;
+    const checkins = await getUserCheckins(userId);
+    setStadiumCheckedIn(checkins.some((checkin) => checkin.match === id && checkin.type === 'stadium' && checkin.status === 'verified'));
+    const preview = await getMatchdaySetPreview({ userId, matchId: id }).catch(() => null);
+    setMatchdayPreview(preview);
+  }
+
   async function handleCheckin(type: CheckinType) {
-    if (!id) return;
-    setLoading(true);
+    if (!id || !userId) return;
+    setWorking(true);
     try {
-      const user = await getCurrentUser();
-      const result = await createCheckin(user.id, id, type);
-      setCreatedCards(result.cards);
-      const newMatchCard = result.cards.find(c => c.type === 'match');
-      if (newMatchCard) setMatchCard(newMatchCard);
+      const result = await createCheckin(userId, id, type);
+      if (result.cards[0]) {
+        setSelectedCard(result.cards[0]);
+      }
+      if (type === 'stadium') setStadiumCheckedIn(true);
+      await reloadUserState();
     } catch (error) {
       Alert.alert('Check-in failed', error instanceof Error ? error.message : 'Please try again.');
     } finally {
-      setLoading(false);
+      setWorking(false);
     }
   }
 
-  if (!match) {
+  if (loading) {
     return (
-      <CurvaoScreen>
-        <EmptyState title="Match not found" />
-        <PrimaryButton label="Back to Matches" onPress={() => router.back()} variant="secondary" />
+      <CurvaoScreen padded={false}>
+        <View style={styles.screen}>
+          <EmptyState title="Matchday wird geladen..." />
+        </View>
       </CurvaoScreen>
     );
   }
 
-  // Create a preview card if no match card exists
-  const previewCard: UserCard | undefined = matchCard || (match ? {
-    id: 'preview',
-    user: 'preview',
-    type: 'match',
-    title: `${getClubName(match.homeClub)} vs ${getClubName(match.awayClub)}`,
-    subtitle: `${match.competition} | ${new Date(match.kickoffAt).toLocaleDateString()}`,
-    rarity: match.importance,
-    origin: 'stadium_verified',
-    match: match.id,
-    editionNumber: 0,
-    editionSize: 1200,
-    tradable: false,
-    bound: false,
-    isMainCard: false,
-    bondXp: 0,
-    bondLevel: 1,
-    acquiredAt: new Date().toISOString(),
-    archived: false,
-    favorite: false,
-  } : undefined);
+  if (!match) {
+    return (
+      <CurvaoScreen padded={false}>
+        <View style={styles.screen}>
+          <EmptyState title="Match not found" />
+        </View>
+      </CurvaoScreen>
+    );
+  }
+
+  const viewState = getMatchViewState(match);
+  const stadiumDisabled = stadiumCheckedIn || working || viewState.status === 'archived';
+  const stadiumSubtitle = stadiumCheckedIn ? 'Vor Ort bestätigt' : 'Vor Ort verifizieren';
+  const stadiumStatus = stadiumCheckedIn ? 'Check-in gespeichert' : viewState.status === 'archived' ? 'Nicht mehr verfügbar' : working ? 'Bitte warten...' : 'Check-in starten';
+  const unopenedMatchdayRewardPackageId = matchdayPreview?.progress.unopenedRewardPackages?.[0]?.id;
 
   return (
-    <CurvaoScreen>
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <View style={styles.cardContainer}>
-          {previewCard && <CardRenderer card={previewCard} />}
+    <CurvaoScreen
+      contentTopInset={FIXED_HERO_HEIGHT}
+      fixedTop={<MatchHero match={match} style={styles.fixedHero} />}
+      padded={false}
+    >
+      <View style={styles.screen}>
+        <View style={styles.sections}>
+          {viewState.status !== 'final' ? (
+            <View style={styles.actionRow}>
+              <LiveWatchPrimaryCard
+                blocked={stadiumCheckedIn}
+                blockedReason="Im Stadion eingecheckt"
+                matchId={match.id}
+                onOpenLiveWatch={() => router.push({ pathname: '/live-watch/[matchId]', params: { matchId: match.id } })}
+                onOpenRewardPackage={(packageId) => router.push({ pathname: '/reward-package/[id]', params: { id: packageId } })}
+                userId={userId}
+                variant="tile"
+              />
+
+              <Pressable
+                disabled={stadiumDisabled}
+                onPress={() => {
+                  void handleCheckin('stadium');
+                }}
+                style={[styles.actionTile, styles.actionTileStadium, stadiumDisabled && styles.actionTileDisabled]}
+              >
+                <Text numberOfLines={1} style={styles.actionTitle}>
+                  STADIUM CHECK-IN
+                </Text>
+                <Text numberOfLines={2} style={styles.actionSubtitle}>
+                  {stadiumSubtitle}
+                </Text>
+                <View style={styles.actionDivider} />
+                <View style={styles.actionStatusRow}>
+                  <Ionicons
+                    color={stadiumCheckedIn ? curvao.colors.gold : stadiumDisabled ? curvao.colors.muted : curvao.colors.gold}
+                    name={stadiumCheckedIn ? 'checkmark-circle' : 'ellipse'}
+                    size={10}
+                  />
+                  <Text numberOfLines={1} style={[styles.actionStatus, stadiumDisabled && !stadiumCheckedIn && styles.actionStatusDisabled]}>
+                    {stadiumStatus}
+                  </Text>
+                </View>
+              </Pressable>
+            </View>
+          ) : null}
+
+          <MatchdaySetPreview
+            fallbackReason="Für dieses Match ist noch kein Matchday Set verfügbar."
+            finalMatch={viewState.status === 'final'}
+            onOpenRewardPackage={unopenedMatchdayRewardPackageId ? () => router.push({ pathname: '/reward-package/[id]', params: { id: unopenedMatchdayRewardPackageId } }) : undefined}
+            onPress={matchdayPreview?.set.id ? () => router.push({ pathname: '/collection/set/[id]', params: { id: matchdayPreview.set.id } }) : undefined}
+            preview={matchdayPreview}
+          />
+
+          <MatchInfoGrid match={match} />
         </View>
+      </View>
 
-        <View style={styles.details}>
-          <Text style={styles.kicker}>{match.competition}</Text>
-          <Text style={styles.title}>{getClubName(match.homeClub)} vs {getClubName(match.awayClub)}</Text>
-          <Text style={styles.meta}>{new Date(match.kickoffAt).toLocaleString()} | {match.stadiumName}, {match.stadiumCity}</Text>
-          <RarityBadge rarity={match.importance} />
-
-          <View style={styles.actions}>
-            {!matchCard && (
-              <>
-                <PrimaryButton label={loading ? 'Checking in...' : 'Stadium Check-in'} onPress={() => handleCheckin('stadium')} disabled={loading} />
-                <PrimaryButton label="Logged Viewing" onPress={() => handleCheckin('viewing')} disabled={loading} variant="secondary" />
-              </>
-            )}
-            {matchCard && (
-              <View style={styles.ownedBadge}>
-                <Text style={styles.ownedText}>MATCH CARD ARCHIVED</Text>
-              </View>
-            )}
-          </View>
-
-          <Text style={styles.section}>Generated Cards</Text>
-          <View style={styles.grid}>
-            {createdCards.filter(c => c.type !== 'match').map((card) => <CardTile key={card.id} card={card} onPress={() => setSelectedCard(card)} />)}
-          </View>
-          {createdCards.length === 0 && !matchCard ? <EmptyState title="No check-in yet" body="Choose a check-in type to generate your Match Card and Player Cards." /> : null}
-        </View>
-      </ScrollView>
-
-      <CardDetailPanel card={selectedCard} cards={createdCards} onClose={() => setSelectedCard(undefined)} />
+      <CardDetailPanel card={selectedCard} onClose={() => setSelectedCard(undefined)} />
     </CurvaoScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  scrollContent: {
-    paddingBottom: 40,
+  screen: {
+    gap: 22,
+    paddingBottom: 28,
   },
-  cardContainer: {
-    alignSelf: 'center',
-    marginBottom: 24,
-    width: '80%',
+  fixedHero: {
+    borderRadius: 0,
+    borderBottomLeftRadius: 14,
+    borderBottomRightRadius: 14,
+    borderWidth: 0,
+    marginTop: 0,
   },
-  details: {
-    gap: 16,
+  sections: {
+    gap: 18,
+    paddingHorizontal: curvao.spacing.lg,
   },
-  kicker: {
-    color: curvao.colors.gold,
-    fontWeight: '800',
-    textTransform: 'uppercase',
-  },
-  title: {
-    color: curvao.colors.text,
-    fontSize: 30,
-    fontWeight: '900',
-  },
-  meta: {
-    color: curvao.colors.muted,
-  },
-  actions: {
-    gap: 10,
-    marginTop: 8,
-  },
-  ownedBadge: {
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 255, 107, 0.1)',
-    borderColor: '#00ff6b',
-    borderRadius: 4,
-    borderWidth: 1,
-    padding: 12,
-  },
-  ownedText: {
-    color: '#00ff6b',
-    fontWeight: '900',
-    letterSpacing: 1,
-  },
-  section: {
-    color: curvao.colors.text,
-    fontSize: 18,
-    fontWeight: '800',
-    marginTop: 24,
-  },
-  grid: {
+  actionRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     gap: 12,
   },
+  actionTile: {
+    borderRadius: 22,
+    borderWidth: 1,
+    flex: 1,
+    minHeight: 80,
+    overflow: 'hidden',
+    padding: 14,
+  },
+  actionTileStadium: {
+    backgroundColor: 'rgba(32,24,14,0.94)',
+    borderColor: 'rgba(216,170,77,0.24)',
+  },
+  actionTileDisabled: {
+    opacity: 0.72,
+  },
+  actionTileTop: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  actionButtonTitle: {
+    color: curvao.colors.gold,
+    flex: 1,
+    fontSize: 8,
+    fontWeight: '700',
+    letterSpacing: 0.9,
+    marginRight: 10,
+  },
+  actionButtonTitleDisabled: {
+    color: curvao.colors.muted,
+  },
+  actionBadge: {
+    color: curvao.colors.gold,
+    fontSize: 8,
+    fontWeight: '700',
+    letterSpacing: 0.9,
+  },
+  actionTitle: {
+    color: curvao.colors.text,
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.9,
+  },
+  actionSubtitle: {
+    color: curvao.colors.muted,
+    fontSize: 10,
+    fontWeight: '400',
+    marginTop: 2,
+    minHeight: 34,
+  },
+  actionDivider: {
+    backgroundColor: 'rgba(216,170,77,0.12)',
+    height: 1,
+    marginTop: 'auto',
+    marginBottom: 10,
+  },
+  actionStatusRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 6,
+  },
+  actionStatus: {
+    color: curvao.colors.gold,
+    flex: 1,
+    fontSize: 8,
+    fontWeight: '700',
+  },
+  actionStatusDisabled: {
+    color: curvao.colors.muted,
+  },
 });
-

@@ -67,15 +67,17 @@ export type PlayerLargeCardProps = {
     momentsCount?: number;
     acquiredAt?: string;
   };
+  isFlipped?: boolean;
 };
 
 export function PlayerLargeCard(props: PlayerLargeCardProps) {
-  const [flipped, setFlipped] = useState(false);
+  const [internalFlipped, setInternalFlipped] = useState(false);
+  const flipped = props.isFlipped !== undefined ? props.isFlipped : internalFlipped;
 
   return (
     <View style={styles.wrapper}>
       <Pressable 
-        onPress={() => setFlipped(!flipped)}
+        onPress={() => setInternalFlipped(!flipped)}
         style={styles.container}
       >
         {!flipped ? (

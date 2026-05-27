@@ -1,5 +1,5 @@
 import { PlayerCardPreview } from '@/src/components/cards/PlayerCardPreview';
-import { PlayerLargeCard } from '@/src/components/cards/PlayerLargeCard';
+import { PlayerHeroDetail } from '@/src/components/cards/player/PlayerHeroDetail';
 import { PlayerStandardCard } from '@/src/components/cards/PlayerStandardCard';
 import { getClubCrestSource, getPlayerImageSource } from '@/src/services/cardAssetService';
 import { getCardRelations } from '@/src/services/cardTemplateService';
@@ -9,10 +9,11 @@ import type { UserCard } from '@/src/types/models';
 type PlayerCardViewProps = {
   card: UserCard;
   compact?: boolean;
-  size?: 'small' | 'medium' | 'large';
+  size?: 'small' | 'medium' | 'large' | 'hero';
+  isFlipped?: boolean;
 };
 
-export function PlayerCardView({ card, compact, size }: PlayerCardViewProps) {
+export function PlayerCardView({ card, compact, size, isFlipped }: PlayerCardViewProps) {
   const { player, playerClub, match, homeClub, awayClub } = getCardRelations(card);
   const [fallbackFirstName = card.title, fallbackLastName = ''] = card.title.split(' ');
   const resolvedSize = size ?? (compact ? 'small' : 'large');
@@ -86,13 +87,18 @@ export function PlayerCardView({ card, compact, size }: PlayerCardViewProps) {
     },
   };
 
+  if (resolvedSize === 'hero') {
+    return <PlayerHeroDetail card={card} />;
+  }
+  
   if (resolvedSize === 'large') {
-    return <PlayerLargeCard {...commonProps} />;
+    return <PlayerHeroDetail card={card} />;
   }
 
   return (
     <PlayerStandardCard
       size={resolvedSize}
+      isFlipped={isFlipped}
       {...commonProps}
     />
   );

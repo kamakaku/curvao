@@ -18,8 +18,8 @@ const CURVAO = {
   borderGold: 'rgba(216,170,77,0.24)',
 };
 
-const CARD_WIDTH = 340;
-const CARD_HEIGHT = 488;
+const CARD_WIDTH = 380;
+const CARD_HEIGHT = 543;
 
 function formatDate(dateString?: string) {
   if (!dateString) return '—';

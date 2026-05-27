@@ -23,8 +23,8 @@ const CURVAO = {
   borderGold: 'rgba(216,170,77,0.24)',
 };
 
-const CARD_WIDTH = 340;
-const CARD_HEIGHT = 488;
+const CARD_WIDTH = 380;
+const CARD_HEIGHT = 543;
 
 function getCrestSource(club?: Club): ImageSourcePropType | undefined {
   const crestUrl = getPocketBaseFileUrl(club, club?.crest);
@@ -40,16 +40,19 @@ function formatDate(dateString?: string) {
   });
 }
 
-export function MatchLargeCard({ card }: { card: UserCard }) {
-  const [flipped, setFlipped] = useState(false);
+export function MatchLargeCard({ card, isFlipped }: { card: UserCard; isFlipped?: boolean }) {
+  const [internalFlipped, setInternalFlipped] = useState(false);
+  const flipped = isFlipped !== undefined ? isFlipped : internalFlipped;
 
   return (
     <View style={styles.wrapper}>
-      <Pressable onPress={() => setFlipped(!flipped)} style={styles.container}>
+      <Pressable onPress={() => setInternalFlipped(!flipped)} style={styles.container}>
         {!flipped ? (
           <MatchLargeCardFront card={card} />
         ) : (
-          <MatchLargeCardBack card={card} />
+          <View style={styles.backWrapper}>
+            <MatchLargeCardBack card={card} />
+          </View>
         )}
       </Pressable>
     </View>
@@ -76,14 +79,14 @@ function MatchLargeCardFront({ card }: { card: UserCard }) {
       {/* Hero Section: Team Crests & Score */}
       <View style={styles.heroLayer}>
         <View style={styles.crestsRow}>
-          <Image source={homeCrest} style={styles.heroCrest} contentFit="contain" />
+          <Image source={homeCrest} style={styles.heroCrest} resizeMode="contain" />
           <View style={styles.scoreBlock}>
             <Text style={styles.heroScore}>
               {match?.homeScore ?? '–'} : {match?.awayScore ?? '–'}
             </Text>
             <Text style={styles.matchType}>MATCH</Text>
           </View>
-          <Image source={awayCrest} style={styles.heroCrest} contentFit="contain" />
+          <Image source={awayCrest} style={styles.heroCrest} resizeMode="contain" />
         </View>
       </View>
 
@@ -172,6 +175,12 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
+  },
+  backWrapper: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#06100c',
+    borderRadius: 20,
+    overflow: 'hidden',
   },
   cardBase: {
     width: CARD_WIDTH,

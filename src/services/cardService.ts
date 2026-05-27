@@ -43,8 +43,39 @@ function createMockEvent(userId: string, card: UserCard, eventType: CardEvent['e
   return event;
 }
 
+function ensureTestPlayerCard(userId: string, cards: UserCard[]) {
+  if (!__DEV__) return cards;
+  if (cards.some((card) => card.type === 'player')) return cards;
+
+  const fallbackPlayer = mockStore.players[0];
+  if (!fallbackPlayer) return cards;
+
+  const fallbackCard: UserCard = {
+    id: `dev-test-player-${userId}`,
+    user: userId,
+    type: 'player',
+    title: fallbackPlayer.displayName,
+    subtitle: `${getClubName(fallbackPlayer.club)}${fallbackPlayer.shirtNumber ? ` | #${fallbackPlayer.shirtNumber}` : ''}`,
+    rarity: 'standard',
+    origin: 'self_earned',
+    editionNumber: 1,
+    editionSize: 500,
+    player: fallbackPlayer.id,
+    tradable: true,
+    bound: false,
+    isMainCard: false,
+    bondXp: 0,
+    bondLevel: 1,
+    acquiredAt: new Date().toISOString(),
+    archived: false,
+    favorite: false,
+  };
+
+  return [fallbackCard, ...cards];
+}
+
 export async function getUserCards(userId: string): Promise<UserCard[]> {
-  return tryPocketBase(
+  const cards = await tryPocketBase(
     async () =>
       pb.collection('user_cards').getFullList<UserCard>({
         expand: 'template,player,player.club,match,match.homeClub,match.awayClub,match.stadium,match.stadium.club,stadium,stadium.club',
@@ -53,11 +84,17 @@ export async function getUserCards(userId: string): Promise<UserCard[]> {
       }),
     () => mockStore.userCards.filter((card) => card.user === userId).sort((a, b) => b.acquiredAt.localeCompare(a.acquiredAt)),
   );
+
+  return ensureTestPlayerCard(userId, cards);
 }
 
 export async function getLatestCards(userId: string, count = 4): Promise<UserCard[]> {
   const cards = await getUserCards(userId);
   return cards.slice(0, count);
+}
+
+export function isCardInActiveCollection(card: UserCard) {
+  return !card.archived && !card.boundTo;
 }
 
 export async function generateCardsForCheckin(userId: string, matchId: string, checkinType: CheckinType, sourceCheckin?: string): Promise<UserCard[]> {
