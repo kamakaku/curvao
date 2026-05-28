@@ -1,7 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
-import { Image, Pressable, StyleSheet, Text, View, type ImageSourcePropType } from 'react-native';
-import Svg, { Defs, LinearGradient, Stop, Mask, Rect } from 'react-native-svg';
+import { Pressable, StyleSheet, Text, View, type ImageSourcePropType } from 'react-native';
+import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
+import Svg, { Defs, Stop, Mask, Rect } from 'react-native-svg';
 
 import { StadiumLargeCardBack } from '@/src/components/cards/StadiumLargeCardBack';
 import { TextureOverlay } from '@/src/components/ui/TextureOverlay';

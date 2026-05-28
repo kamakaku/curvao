@@ -1,4 +1,3 @@
-import { mockStore } from '@/src/services/mockStore';
 import type { CardOrigin, CardType, Rarity, UserCard } from '@/src/types/models';
 
 export type CardVisualConfig = {
@@ -55,6 +54,12 @@ const originLabels: Record<CardOrigin, string> = {
   event_drop: 'Event Drop',
   gifted: 'Gifted',
   bound: 'Bound',
+  starter_pack: 'Starter Pack',
+  fan_claimed: 'Fan Claimed',
+  live_verified: 'Live Verified',
+  special_moment: 'Special Moment',
+  club_reward: 'Club Reward',
+  season_reward: 'Season Reward',
 };
 
 const rarityLabels: Record<Rarity, string> = {
@@ -74,6 +79,12 @@ const originUpperLabels: Record<CardOrigin, string> = {
   event_drop: 'EVENT DROP',
   gifted: 'GIFTED',
   bound: 'BOUND',
+  starter_pack: 'STARTER PACK',
+  fan_claimed: 'FAN CLAIMED',
+  live_verified: 'LIVE VERIFIED',
+  special_moment: 'SPECIAL MOMENT',
+  club_reward: 'CLUB REWARD',
+  season_reward: 'SEASON REWARD',
 };
 
 export function getCardVisualConfig(card: Pick<UserCard, 'type' | 'rarity'>): CardVisualConfig {
@@ -135,17 +146,13 @@ export function formatMatch(match?: {
 }
 
 export function getCardRelations(card: UserCard) {
-  const player = card.expand?.player ?? (card.player ? mockStore.players.find((item) => item.id === card.player) : undefined);
-  const match = card.expand?.match ?? (card.match ? mockStore.matches.find((item) => item.id === card.match) : undefined);
-  const stadium =
-    card.expand?.stadium ??
-    match?.expand?.stadium ??
-    (card.stadium ? mockStore.stadiums.find((item) => item.id === card.stadium) : undefined) ??
-    (match?.stadium ? mockStore.stadiums.find((item) => item.id === match.stadium) : undefined);
-  const homeClub = card.expand?.match?.expand?.homeClub ?? (match ? mockStore.clubs.find((club) => club.id === match.homeClub) : undefined);
-  const awayClub = card.expand?.match?.expand?.awayClub ?? (match ? mockStore.clubs.find((club) => club.id === match.awayClub) : undefined);
-  const playerClub = card.expand?.player?.expand?.club ?? (player ? mockStore.clubs.find((club) => club.id === player.club) : undefined);
-  const stadiumClub = stadium?.expand?.club ?? (stadium?.club ? mockStore.clubs.find((club) => club.id === stadium.club) : undefined);
+  const player = card.expand?.player;
+  const match = card.expand?.match;
+  const stadium = card.expand?.stadium ?? match?.expand?.stadium;
+  const homeClub = card.expand?.match?.expand?.homeClub;
+  const awayClub = card.expand?.match?.expand?.awayClub;
+  const playerClub = card.expand?.player?.expand?.club;
+  const stadiumClub = stadium?.expand?.club;
 
   return {
     player,

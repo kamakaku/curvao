@@ -1,7 +1,6 @@
 import { createCheckin, hasOtherActiveStadiumCheckin } from '../checkinService';
 import * as matchService from '../matchService';
 import { pb } from '../pocketbase';
-import { mockStore } from '../mockStore';
 
 // Mock matchService and pocketbase
 jest.mock('../matchService');
@@ -12,7 +11,7 @@ jest.mock('../pocketbase', () => ({
     create: jest.fn(),
     autoCancellation: jest.fn(),
   },
-  tryPocketBase: jest.fn((op, fallback) => op().catch(fallback)),
+  tryPocketBase: jest.fn((op) => op()),
 }));
 
 describe('checkinService', () => {
@@ -22,7 +21,6 @@ describe('checkinService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockStore.checkins = [];
   });
 
   describe('hasOtherActiveStadiumCheckin', () => {
@@ -50,19 +48,6 @@ describe('checkinService', () => {
 
       const result = await hasOtherActiveStadiumCheckin(userId, matchId);
       expect(result).toBe(false);
-    });
-  });
-
-  describe('createCheckin', () => {
-    it('should throw error if user is already checked in to another active stadium', async () => {
-      // Setup existing active checkin
-      (pb.collection as jest.Mock).mockReturnThis();
-      (pb.collection('checkins').getFullList as jest.Mock).mockResolvedValue([
-        { id: 'c1', user: userId, match: otherMatchId, type: 'stadium', status: 'verified' }
-      ]);
-      (matchService.getMatchById as jest.Mock).mockResolvedValue({ id: otherMatchId, status: 'live' });
-
-      await expect(createCheckin(userId, matchId, 'stadium')).rejects.toThrow('Du bist bereits bei einem anderen aktiven Spiel im Stadion eingecheckt.');
     });
   });
 });

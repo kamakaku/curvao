@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient as ExpoLinearGradient } from 'expo-linear-gradient';
 import React, { useState } from 'react';
-import { Image, Pressable, StyleSheet, Text, View, type ImageSourcePropType } from 'react-native';
+import { Pressable, StyleSheet, Text, View, type ImageSourcePropType } from 'react-native';
+import { Image } from 'expo-image';
 import Svg, { Defs, LinearGradient, Stop, Mask, Rect, Image as SvgImage } from 'react-native-svg';
 import resolveAssetSource from 'react-native/Libraries/Image/resolveAssetSource';
 
@@ -126,7 +127,7 @@ function PlayerLargeCardFront({ player, club, card }: PlayerLargeCardProps) {
 
   return (
     <View style={styles.cardBase}>
-      <Image source={cardBaseBlank} style={styles.backgroundImage} />
+      <Image source={cardBaseBlank} style={styles.backgroundImage} contentFit="fill" />
       <TextureOverlay opacity={0.15} />
 
       {/* Player Image with SVG MASK for absolute seamless fade-out */}

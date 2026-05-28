@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
-import { Image, Pressable, StyleSheet, Text, View, type ImageSourcePropType } from 'react-native';
+import { Pressable, StyleSheet, Text, View, type ImageSourcePropType } from 'react-native';
+import { Image } from 'expo-image';
 import Svg, { Defs, LinearGradient, Stop, Mask, Rect } from 'react-native-svg';
 
 import { MatchLargeCardBack } from '@/src/components/cards/MatchLargeCardBack';
@@ -79,14 +80,14 @@ function MatchLargeCardFront({ card }: { card: UserCard }) {
       {/* Hero Section: Team Crests & Score */}
       <View style={styles.heroLayer}>
         <View style={styles.crestsRow}>
-          <Image source={homeCrest} style={styles.heroCrest} resizeMode="contain" />
+          <Image source={homeCrest} style={styles.heroCrest} contentFit="contain" />
           <View style={styles.scoreBlock}>
             <Text style={styles.heroScore}>
               {match?.homeScore ?? '–'} : {match?.awayScore ?? '–'}
             </Text>
             <Text style={styles.matchType}>MATCH</Text>
           </View>
-          <Image source={awayCrest} style={styles.heroCrest} resizeMode="contain" />
+          <Image source={awayCrest} style={styles.heroCrest} contentFit="contain" />
         </View>
       </View>
 

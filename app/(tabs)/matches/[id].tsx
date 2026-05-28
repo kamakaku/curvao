@@ -8,14 +8,14 @@ import { CurvaoScreen } from '@/src/components/CurvaoScreen';
 import { EmptyState } from '@/src/components/EmptyState';
 import { LiveWatchPrimaryCard } from '@/src/components/match/LiveWatchPrimaryCard';
 import { MatchHero } from '@/src/components/match/MatchHero';
-import { MatchInfoGrid } from '@/src/components/match/MatchInfoGrid';
+import { MatchEventTimeline } from '@/src/components/match/MatchEventTimeline';
 import { MatchdaySetPreview } from '@/src/components/match/MatchdaySetPreview';
 import { getCurrentUser } from '@/src/services/authService';
 import { getMatchdaySetPreview, type MatchdaySetPreview as MatchdaySetPreviewData } from '@/src/services/cardSetService';
 import { createCheckin, getUserCheckins } from '@/src/services/checkinService';
-import { getMatchById } from '@/src/services/matchService';
+import { getMatchById, getMatchEvents } from '@/src/services/matchService';
 import { curvao } from '@/src/theme/curvaoTheme';
-import type { CheckinType, Match, UserCard } from '@/src/types/models';
+import type { CheckinType, Match, MatchEvent, UserCard } from '@/src/types/models';
 import { getMatchViewState } from '@/src/utils/matchUtils';
 
 const FIXED_HERO_HEIGHT = 276;
@@ -31,6 +31,7 @@ export default function MatchDetailScreen() {
   const [selectedCard, setSelectedCard] = useState<UserCard>();
   const [matchdayPreview, setMatchdayPreview] = useState<MatchdaySetPreviewData | null>(null);
   const [stadiumCheckedIn, setStadiumCheckedIn] = useState(false);
+  const [matchEvents, setMatchEvents] = useState<MatchEvent[]>([]);
 
   useEffect(() => {
     let mounted = true;
@@ -49,6 +50,7 @@ export default function MatchDetailScreen() {
           setUserId(user.id);
           setMatchdayPreview(null);
           setStadiumCheckedIn(false);
+          setMatchEvents([]);
           return;
         }
 
@@ -56,7 +58,9 @@ export default function MatchDetailScreen() {
         setUserId(user.id);
         setStadiumCheckedIn(checkins.some((checkin) => checkin.match === id && checkin.type === 'stadium' && checkin.status === 'verified'));
         const preview = await getMatchdaySetPreview({ userId: user.id, matchId: resolvedMatch.id }).catch(() => null);
+        const events = await getMatchEvents(resolvedMatch.id).catch(() => []);
         if (mounted) setMatchdayPreview(preview);
+        if (mounted) setMatchEvents(events);
       } finally {
         if (mounted) setLoading(false);
       }
@@ -175,7 +179,7 @@ export default function MatchDetailScreen() {
             preview={matchdayPreview}
           />
 
-          <MatchInfoGrid match={match} />
+          <MatchEventTimeline match={match} matchEvents={matchEvents} />
         </View>
       </View>
 

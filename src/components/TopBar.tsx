@@ -3,14 +3,27 @@ import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useEffect, useState } from 'react';
 
 import { curvao } from '@/src/theme/curvaoTheme';
+import { useAuth } from '@/src/providers/AuthProvider';
+import { getUserProgress, type UserProgress } from '@/src/services/progressService';
+import { getPocketBaseFileUrl } from '@/src/services/pocketbase';
 
 const logo = require('@/assets/logo_word.png');
 
 export function TopBar() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { user } = useAuth();
+  const [progress, setProgress] = useState<UserProgress | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    getUserProgress(user.id).then(setProgress).catch(console.warn);
+  }, [user]);
+
+  const avatarUrl = user?.avatar ? getPocketBaseFileUrl(user as any, user.avatar) : undefined;
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
@@ -37,11 +50,15 @@ export function TopBar() {
             style={({ pressed }) => [styles.profileSection, pressed && styles.pressed]}
           >
             <View style={styles.avatarContainer}>
-              <Ionicons name="person" size={20} color={curvao.colors.muted} />
+              {avatarUrl ? (
+                <Image source={{ uri: avatarUrl }} style={styles.avatar} />
+              ) : (
+                <Ionicons name="person" size={20} color={curvao.colors.muted} />
+              )}
             </View>
             <View style={styles.xpSection}>
-              <Text style={styles.levelText}>LVL 12</Text>
-              <Text style={styles.xpText}>4.250 XP</Text>
+              <Text style={styles.levelText}>LVL {progress?.level || 1}</Text>
+              <Text style={styles.xpText}>{progress?.xp?.toLocaleString('de-DE') || 0} XP</Text>
             </View>
           </Pressable>
         </View>
@@ -117,6 +134,10 @@ const styles = StyleSheet.create({
     backgroundColor: curvao.colors.surfaceElevated,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  avatar: {
+    width: '100%',
+    height: '100%',
   },
   xpSection: {
     justifyContent: 'center',

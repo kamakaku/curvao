@@ -48,6 +48,7 @@ export type Club = {
   primaryColor?: string;
   secondaryColor?: string;
   crest?: string;
+  expand?: Record<string, any>;
 };
 
 export type Player = {
@@ -59,7 +60,11 @@ export type Player = {
   position: string;
   shirtNumber?: number;
   nationality?: string;
+  avatar?: string;
   active: boolean;
+  expand?: {
+    club?: Club;
+  };
 };
 
 export type Stadium = {
@@ -118,6 +123,44 @@ export type MatchPlayer = {
   started: boolean;
   minuteIn?: number;
   minuteOut?: number;
+};
+
+export type MatchEvent = {
+  id: string;
+  match: string;
+  club?: string;
+  player?: string;
+  relatedPlayer?: string;
+  sportmonksEventId?: string;
+  eventType:
+    | 'goal'
+    | 'penalty_goal'
+    | 'own_goal'
+    | 'goal_disallowed'
+    | 'substitution'
+    | 'yellow_card'
+    | 'red_card'
+    | 'second_yellow_red'
+    | 'var'
+    | 'save'
+    | 'woodwork'
+    | 'shot_off_target'
+    | 'disciplinary_review'
+    | 'other'
+    | string;
+  side?: 'home' | 'away' | 'neutral';
+  minute?: number;
+  extraMinute?: number;
+  sortOrder?: number;
+  title?: string;
+  subtitle?: string;
+  result?: string;
+  info?: string;
+  expand?: {
+    club?: Club;
+    player?: Player;
+    relatedPlayer?: Player;
+  };
 };
 
 export type Checkin = {

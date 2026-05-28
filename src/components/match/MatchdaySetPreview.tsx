@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { TextureOverlay } from '@/src/components/ui/TextureOverlay';
 import type { MatchdaySetPreview as MatchdaySetPreviewData } from '@/src/services/cardSetService';
@@ -65,7 +65,11 @@ export function MatchdaySetPreview({
         <View style={[styles.fill, { width: `${Math.min(100, progress.percent * 100)}%` }]} />
       </View>
 
-      <View style={styles.slots}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.slots}
+      >
         {featuredSlots.map((slot) => (
           <View key={slot.slot.id} style={[styles.slot, slot.status === 'owned' && styles.slotOwned, slot.status === 'wanted' && styles.slotWanted]}>
             <Ionicons color={getSlotColor(slot.status)} name={getSlotIcon(slot)} size={18} />
@@ -73,7 +77,7 @@ export function MatchdaySetPreview({
             <Text numberOfLines={1} style={styles.slotState}>{getSlotStateLabel(slot.status)}</Text>
           </View>
         ))}
-      </View>
+      </ScrollView>
 
       {bonusText ? (
         <Text style={styles.bonus}>Set Bonus: {bonusText}</Text>
@@ -225,9 +229,8 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   slots: {
-    flexDirection: 'row',
     gap: 8,
-    flexWrap: 'wrap',
+    paddingRight: 6,
   },
   slot: {
     alignItems: 'center',
@@ -240,7 +243,7 @@ const styles = StyleSheet.create({
     minHeight: 88,
     paddingHorizontal: 10,
     paddingVertical: 12,
-    width: '31%',
+    width: 104,
   },
   slotOwned: {
     borderColor: 'rgba(34,200,120,0.34)',

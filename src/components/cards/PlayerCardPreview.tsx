@@ -4,7 +4,7 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { TextureOverlay } from '@/src/components/ui/TextureOverlay';
-import { getClubCrestSource, getPlayerImageSource } from '@/src/services/cardAssetService';
+import { getClubCrestSource, getPlayerImageSourceFromRecord } from '@/src/services/cardAssetService';
 import { formatRarity } from '@/src/services/cardTemplateService';
 import type { Club, Player, UserCard } from '@/src/types/models';
 
@@ -22,7 +22,7 @@ type PlayerCardPreviewProps = {
 };
 
 export function PlayerCardPreview({ card, player, club }: PlayerCardPreviewProps) {
-  const playerImage = getPlayerImageSource(player.id);
+  const playerImage = getPlayerImageSourceFromRecord(player);
   const clubCrest = getClubCrestSource(club.id);
   const primaryColor = club.primaryColor || '#DC052D';
   const [firstName = player.displayName, ...rest] = player.displayName.split(' ');

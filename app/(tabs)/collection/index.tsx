@@ -1,19 +1,28 @@
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { CardDetailPanel } from '@/src/components/CardDetailPanel';
 import { CardTile } from '@/src/components/CardTile';
 import { WantedCardTile } from '@/src/components/cards/WantedCardTile';
+import { WantedDetailModal } from '@/src/components/cards/WantedDetailModal';
+import { WantedEmptyState } from '@/src/components/cards/WantedEmptyState';
+import { WantedSearchBar } from '@/src/components/cards/WantedSearchBar';
+import { WantedSearchResultTile } from '@/src/components/cards/WantedSearchResultTile';
 import { CurvaoScreen } from '@/src/components/CurvaoScreen';
 import { EmptyState } from '@/src/components/EmptyState';
 import { getCurrentUser } from '@/src/services/authService';
 import { getVisibleCardSetsForUser, type CardSetProgress } from '@/src/services/cardSetService';
 import { getUserCards } from '@/src/services/cardService';
 import {
+  getEarnPathsForTarget,
   getEarnPathsForWantedCard,
   getWantedCards,
   removeWantedCard,
+  searchWantedTargets,
+  toggleWantedCard,
+  wantedInputFromTarget,
+  type CardSearchResult,
   type EarnPath,
   type WantedCard,
 } from '@/src/services/wantedCardService';
@@ -62,12 +71,18 @@ type WantedCardState = {
 export default function CollectionScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ section?: string }>();
+  const [userId, setUserId] = useState('');
   const [cards, setCards] = useState<UserCard[]>([]);
   const [wantedCards, setWantedCards] = useState<WantedCardState[]>([]);
   const [setProgressItems, setSetProgressItems] = useState<CardSetProgress[]>([]);
   const [filter, setFilter] = useState<Filter>('Alle');
   const [activeSetFilter, setActiveSetFilter] = useState<SetFilter>('Alle');
   const [selected, setSelected] = useState<UserCard>();
+  const [wantedQuery, setWantedQuery] = useState('');
+  const [wantedResults, setWantedResults] = useState<CardSearchResult[]>([]);
+  const [wantedLoading, setWantedLoading] = useState(false);
+  const [selectedWantedResult, setSelectedWantedResult] = useState<CardSearchResult>();
+  const [selectedWantedEarnPaths, setSelectedWantedEarnPaths] = useState<EarnPath[]>([]);
 
   const activeSection = normalizeSection(params.section);
 
@@ -87,6 +102,7 @@ export default function CollectionScreen() {
       const setProgress = await getVisibleCardSetsForUser({ userId: user.id, wantedCards: wanted }).catch(() => []);
 
       if (!mounted) return;
+      setUserId(user.id);
       setCards(userCards);
       setWantedCards(wantedWithPaths);
       setSetProgressItems(setProgress.sort((a, b) => b.percent - a.percent || (a.set.title || a.set.name || '').localeCompare(b.set.title || b.set.name || '')));
@@ -100,6 +116,32 @@ export default function CollectionScreen() {
   }, []);
 
   useFocusEffect(load);
+
+  useEffect(() => {
+    let active = true;
+
+    async function run() {
+      if (activeSection !== 'Gesucht') return;
+      const trimmed = wantedQuery.trim();
+      if (trimmed.length < 2) {
+        setWantedResults([]);
+        setWantedLoading(false);
+        return;
+      }
+
+      setWantedLoading(true);
+      const results = await searchWantedTargets(trimmed, cards, wantedCards.map((item) => item.wantedCard)).catch(() => []);
+      if (!active) return;
+      setWantedResults(results);
+      setWantedLoading(false);
+    }
+
+    void run();
+
+    return () => {
+      active = false;
+    };
+  }, [activeSection, cards, wantedCards, wantedQuery]);
 
   const visibleCards = useMemo(() => cards.filter((card) => matchesFilter(card, filter)), [cards, filter]);
   const visibleSetProgressItems = useMemo(
@@ -123,6 +165,29 @@ export default function CollectionScreen() {
   async function handleRemoveWantedCard(wantedCardId: string) {
     await removeWantedCard(wantedCardId).catch(() => undefined);
     setWantedCards((current) => current.filter((item) => item.wantedCard.id !== wantedCardId));
+  }
+
+  async function openWantedResult(result: CardSearchResult) {
+    setSelectedWantedResult(result);
+    const earnPaths = await getEarnPathsForTarget(result.target).catch(() => []);
+    setSelectedWantedEarnPaths(earnPaths);
+  }
+
+  async function handleToggleWantedResult() {
+    if (!selectedWantedResult || !userId) return;
+
+    try {
+      await toggleWantedCard(wantedInputFromTarget(userId, selectedWantedResult.target));
+      const refreshedWanted = await getWantedCards(userId);
+      const wantedWithPaths = await Promise.all(
+        refreshedWanted.map(async (wantedCard) => ({
+          wantedCard,
+          earnPaths: await getEarnPathsForWantedCard(wantedCard).catch(() => []),
+        })),
+      );
+      setWantedCards(wantedWithPaths);
+    } finally {
+    }
   }
 
   return (
@@ -165,19 +230,39 @@ export default function CollectionScreen() {
 
       {activeSection === 'Gesucht' ? (
         <View style={styles.stack}>
-          {wantedCards.map(({ wantedCard, earnPaths }) => (
-            <WantedCardTile
-              key={wantedCard.id}
-              wantedCard={wantedCard}
-              title={wantedCard.expand?.player?.displayName || wantedCard.expand?.club?.name || wantedCard.expand?.stadium?.name || wantedCard.expand?.match?.stadiumName || 'Wanted Card'}
-              subtitle={wantedCard.expand?.match ? `${wantedCard.expand.match.competition} · ${new Date(wantedCard.expand.match.kickoffAt).toLocaleDateString()}` : wantedCard.expand?.stadium?.city || undefined}
-              earnPaths={earnPaths}
-              onRemove={() => void handleRemoveWantedCard(wantedCard.id)}
-              onOpenSet={wantedCard.setId ? () => router.push(`/collection/set/${wantedCard.setId}`) : undefined}
-              onOpenMatch={wantedCard.matchId ? () => router.push(`/matches/${wantedCard.matchId}`) : undefined}
-            />
-          ))}
-          {wantedCards.length === 0 ? <EmptyState title="Noch keine gesuchten Cards" /> : null}
+          <WantedSearchBar value={wantedQuery} onChangeText={setWantedQuery} />
+
+          {wantedQuery.trim().length >= 2 ? (
+            <View style={styles.stack}>
+              {wantedResults.map((result) => (
+                <WantedSearchResultTile key={result.id} result={result} onPress={() => void openWantedResult(result)} />
+              ))}
+              {!wantedLoading && wantedResults.length === 0 ? (
+                <EmptyState title="Keine Cards gefunden" />
+              ) : null}
+            </View>
+          ) : (
+            <>
+              {wantedCards.length > 0 ? (
+                <View style={styles.stack}>
+                  {wantedCards.map(({ wantedCard, earnPaths }) => (
+                    <WantedCardTile
+                      key={wantedCard.id}
+                      wantedCard={wantedCard}
+                      title={wantedCard.note || wantedCard.expand?.player?.displayName || wantedCard.expand?.club?.name || wantedCard.expand?.stadium?.name || wantedCard.expand?.match?.stadiumName || 'Wanted Card'}
+                      subtitle={wantedCard.expand?.match ? `${wantedCard.expand.match.competition} · ${new Date(wantedCard.expand.match.kickoffAt).toLocaleDateString()}` : wantedCard.expand?.stadium?.city || wantedCard.expand?.club?.name || wantedCard.rarityTarget?.toUpperCase() || undefined}
+                      earnPaths={earnPaths}
+                      onRemove={() => void handleRemoveWantedCard(wantedCard.id)}
+                      onOpenSet={wantedCard.setId ? () => router.push(`/collection/set/${wantedCard.setId}`) : undefined}
+                      onOpenMatch={wantedCard.matchId ? () => router.push(`/matches/${wantedCard.matchId}`) : undefined}
+                    />
+                  ))}
+                </View>
+              ) : (
+                <WantedEmptyState onDiscover={() => router.setParams({ section: 'Gesucht' })} />
+              )}
+            </>
+          )}
         </View>
       ) : null}
 
@@ -217,6 +302,15 @@ export default function CollectionScreen() {
       ) : null}
 
       <CardDetailPanel card={selected} cards={visibleCards} onClose={() => setSelected(undefined)} />
+      <WantedDetailModal
+        earnPaths={selectedWantedEarnPaths}
+        onClose={() => setSelectedWantedResult(undefined)}
+        onOpenMatch={selectedWantedResult?.target.matchId ? () => router.push(`/matches/${selectedWantedResult.target.matchId}`) : undefined}
+        onOpenSet={selectedWantedResult?.target.setId ? () => router.push(`/collection/set/${selectedWantedResult.target.setId}`) : undefined}
+        onToggleWanted={() => void handleToggleWantedResult()}
+        result={selectedWantedResult}
+        visible={Boolean(selectedWantedResult)}
+      />
     </CurvaoScreen>
   );
 }

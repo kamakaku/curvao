@@ -1,6 +1,5 @@
 import { getUserCards, isCardInActiveCollection } from '../cardService';
 import { pb } from '../pocketbase';
-import { mockStore } from '../mockStore';
 import { UserCard } from '@/src/types/models';
 
 // Mock pocketbase
@@ -9,7 +8,7 @@ jest.mock('../pocketbase', () => ({
     collection: jest.fn().mockReturnThis(),
     getFullList: jest.fn(),
   },
-  tryPocketBase: jest.fn((op, fallback) => op().catch(fallback)),
+  tryPocketBase: jest.fn((op) => op()),
 }));
 
 describe('cardService', () => {
@@ -17,30 +16,17 @@ describe('cardService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockStore.userCards = [];
   });
 
   describe('getUserCards', () => {
-    it('should return cards from PocketBase plus the developer demo card', async () => {
+    it('should return cards from PocketBase', async () => {
       const mockCards = [{ id: 'c1', user: userId, acquiredAt: '2023-01-01' }];
       (pb.collection as jest.Mock).mockReturnThis();
       (pb.collection('user_cards').getFullList as jest.Mock).mockResolvedValue(mockCards);
 
       const result = await getUserCards(userId);
-      expect(result.length).toBe(2);
-      expect(result[0].id).toBe('dev-demo-reese');
-      expect(result[1]).toEqual(mockCards[0]);
-    });
-
-    it('should return only the developer demo card if PocketBase fails', async () => {
-      const mockCard = { id: 'mc1', user: userId, acquiredAt: '2023-01-01' } as UserCard;
-      
-      (pb.collection as jest.Mock).mockReturnThis();
-      (pb.collection('user_cards').getFullList as jest.Mock).mockRejectedValue(new Error('Fail'));
-
-      const result = await getUserCards(userId);
       expect(result.length).toBe(1);
-      expect(result[0].id).toBe('dev-demo-reese');
+      expect(result[0]).toEqual(mockCards[0]);
     });
   });
 

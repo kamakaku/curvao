@@ -81,7 +81,7 @@ export function WantedDetailModal({ result, earnPaths, visible, onClose, onToggl
 
   const mockCard: UserCard = {
     id: `mock-${result.id}`,
-    type: (result.type === 'club' || result.type === 'set') ? 'patch' : result.type as UserCard['type'],
+    type: (result.type === 'special' ? 'patch' : result.type) as UserCard['type'],
     title: result.title,
     subtitle: result.subtitle,
     rarity: result.target.rarityTarget ?? 'standard',

@@ -1,6 +1,5 @@
 import { checkAchievements } from '@/src/services/achievementService';
-import { createId, mockStore } from '@/src/services/mockStore';
-import { getClubName, getMatchById, getMatchPlayers } from '@/src/services/matchService';
+import { getClubName, getMatchById, getMatchPlayers, getPlayers } from '@/src/services/matchService';
 import { pb, tryPocketBase } from '@/src/services/pocketbase';
 import type { CardEvent, CheckinType, Match, Rarity, UserCard } from '@/src/types/models';
 
@@ -27,65 +26,16 @@ function playerCardRarity(seed: number): Rarity {
   return 'standard';
 }
 
-function createMockEvent(userId: string, card: UserCard, eventType: CardEvent['eventType'], relatedCard?: string) {
-  const event: CardEvent = {
-    id: createId('event'),
-    user: userId,
-    card: card.id,
-    eventType,
-    title: eventType === 'bound' ? 'Duplicate bound' : 'Card archived',
-    description: eventType === 'bound' ? `${card.title} was bound into a Main Card.` : `${card.title} entered the Archive.`,
-    relatedCard,
-    relatedMatch: card.match,
-    createdAt: new Date().toISOString(),
-  };
-  mockStore.cardEvents.push(event);
-  return event;
-}
-
-function ensureTestPlayerCard(userId: string, cards: UserCard[]) {
-  if (!__DEV__) return cards;
-  if (cards.some((card) => card.type === 'player')) return cards;
-
-  const fallbackPlayer = mockStore.players[0];
-  if (!fallbackPlayer) return cards;
-
-  const fallbackCard: UserCard = {
-    id: `dev-test-player-${userId}`,
-    user: userId,
-    type: 'player',
-    title: fallbackPlayer.displayName,
-    subtitle: `${getClubName(fallbackPlayer.club)}${fallbackPlayer.shirtNumber ? ` | #${fallbackPlayer.shirtNumber}` : ''}`,
-    rarity: 'standard',
-    origin: 'self_earned',
-    editionNumber: 1,
-    editionSize: 500,
-    player: fallbackPlayer.id,
-    tradable: true,
-    bound: false,
-    isMainCard: false,
-    bondXp: 0,
-    bondLevel: 1,
-    acquiredAt: new Date().toISOString(),
-    archived: false,
-    favorite: false,
-  };
-
-  return [fallbackCard, ...cards];
-}
-
 export async function getUserCards(userId: string): Promise<UserCard[]> {
-  const cards = await tryPocketBase(
+  return await tryPocketBase(
     async () =>
       pb.collection('user_cards').getFullList<UserCard>({
         expand: 'template,player,player.club,match,match.homeClub,match.awayClub,match.stadium,match.stadium.club,stadium,stadium.club',
         filter: `user = "${userId}"`,
         sort: '-acquiredAt',
       }),
-    () => mockStore.userCards.filter((card) => card.user === userId).sort((a, b) => b.acquiredAt.localeCompare(a.acquiredAt)),
+    () => [],
   );
-
-  return ensureTestPlayerCard(userId, cards);
 }
 
 export async function getLatestCards(userId: string, count = 4): Promise<UserCard[]> {
@@ -98,8 +48,12 @@ export function isCardInActiveCollection(card: UserCard) {
 }
 
 export async function generateCardsForCheckin(userId: string, matchId: string, checkinType: CheckinType, sourceCheckin?: string): Promise<UserCard[]> {
-  const match = await getMatchById(matchId);
-  const matchPlayers = await getMatchPlayers(matchId);
+  const [match, matchPlayers, allPlayers] = await Promise.all([
+    getMatchById(matchId),
+    getMatchPlayers(matchId),
+    getPlayers()
+  ]);
+  
   const playerCount = 3 + (matchId.length % 3);
   const selectedPlayers = matchPlayers.slice(0, playerCount);
   const now = new Date().toISOString();
@@ -111,7 +65,7 @@ export async function generateCardsForCheckin(userId: string, matchId: string, c
     subtitle: matchSubtitle(match),
     rarity: match?.importance ?? 'standard',
     origin: checkinType === 'stadium' ? 'stadium_verified' : 'logged_viewing',
-    editionNumber: mockStore.userCards.length + 1,
+    editionNumber: 1, // Will be set by server-side logic ideally, but for now we set it to 1
     editionSize: 1200,
     match: matchId,
     sourceCheckin,
@@ -126,16 +80,16 @@ export async function generateCardsForCheckin(userId: string, matchId: string, c
   };
 
   const playerPayloads: Omit<UserCard, 'id'>[] = selectedPlayers.map((matchPlayer, index) => {
-    const player = mockStore.players.find((item) => item.id === matchPlayer.player);
+    const player = allPlayers.find((item) => item.id === matchPlayer.player);
 
     return {
       user: userId,
       type: 'player',
       title: player?.displayName ?? 'Verified Player',
       subtitle: `${getClubName(matchPlayer.club)}${player?.shirtNumber ? ` | #${player.shirtNumber}` : ''}`,
-      rarity: playerCardRarity(index + mockStore.userCards.length),
+      rarity: playerCardRarity(index),
       origin: 'self_earned',
-      editionNumber: mockStore.userCards.length + index + 2,
+      editionNumber: index + 1,
       editionSize: 500,
       match: matchId,
       player: matchPlayer.player,
@@ -174,13 +128,7 @@ export async function generateCardsForCheckin(userId: string, matchId: string, c
       await checkAchievements(userId);
       return created;
     },
-    async () => {
-      const created = [matchCardPayload, ...playerPayloads].map((card) => ({ ...card, id: createId('card') }));
-      mockStore.userCards.unshift(...created);
-      created.forEach((card) => createMockEvent(userId, card, 'earned'));
-      await checkAchievements(userId);
-      return created;
-    },
+    () => [],
   );
 }
 
@@ -196,24 +144,16 @@ export async function getDuplicatePlayerCards(userId: string): Promise<Record<st
 export async function setMainCard(userCardId: string): Promise<UserCard> {
   const card = await tryPocketBase(
     async () => pb.collection('user_cards').getOne<UserCard>(userCardId),
-    () => mockStore.userCards.find((item) => item.id === userCardId),
+    () => undefined,
   );
 
   if (!card || card.type !== 'player' || card.bound) {
     throw new Error('Only unbound Player Cards can be selected as Main Cards.');
   }
 
-  return tryPocketBase(
+  return await tryPocketBase(
     async () => pb.collection('user_cards').update<UserCard>(userCardId, { isMainCard: true }),
-    () => {
-      mockStore.userCards.forEach((item) => {
-        if (item.user === card.user && item.player === card.player) {
-          item.isMainCard = item.id === userCardId;
-        }
-      });
-      createMockEvent(card.user, card, 'main_selected');
-      return card;
-    },
+    () => { throw new Error('Update failed'); },
   );
 }
 
@@ -224,10 +164,7 @@ export async function bindDuplicateToMain(duplicateCardId: string, mainCardId: s
         pb.collection('user_cards').getOne<UserCard>(duplicateCardId),
         pb.collection('user_cards').getOne<UserCard>(mainCardId),
       ]),
-    () => [
-      mockStore.userCards.find((card) => card.id === duplicateCardId),
-      mockStore.userCards.find((card) => card.id === mainCardId),
-    ],
+    () => [undefined, undefined] as any as [UserCard, UserCard],
   );
 
   if (!duplicate || !main) {
@@ -271,15 +208,6 @@ export async function bindDuplicateToMain(duplicateCardId: string, mainCardId: s
       await checkAchievements(main.user);
       return { duplicate: updatedDuplicate, main: updatedMain };
     },
-    async () => {
-      duplicate.bound = true;
-      duplicate.boundTo = mainCardId;
-      duplicate.tradable = false;
-      main.bondXp = nextBondXp;
-      main.bondLevel = nextBondLevel;
-      createMockEvent(main.user, duplicate, 'bound', mainCardId);
-      await checkAchievements(main.user);
-      return { duplicate, main };
-    },
+    async () => { throw new Error('Update failed'); },
   );
 }

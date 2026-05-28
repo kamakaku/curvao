@@ -1,9 +1,22 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
 
 import { curvao } from '@/src/theme/curvaoTheme';
+import { getUserProgress, type UserProgress } from '@/src/services/progressService';
+import { useAuth } from '@/src/providers/AuthProvider';
 
 export function DashboardProgress() {
+  const { user } = useAuth();
+  const [progress, setProgress] = useState<UserProgress | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    getUserProgress(user.id).then(setProgress).catch(console.warn);
+  }, [user]);
+
+  if (!progress) return null;
+
   return (
     <View style={styles.outerContainer}>
       <Pressable style={({ pressed }) => [styles.header, pressed && styles.pressed]}>
@@ -13,10 +26,10 @@ export function DashboardProgress() {
 
       <View style={styles.container}>
         <View style={styles.statsGrid}>
-          <StatItem icon="albums-sharp" value="128" label="CARDS" />
-          <StatItem icon="star-sharp" value="24" label="BADGES" />
-          <StatItem icon="flame-sharp" value="18" label="TAGE STREAK" />
-          <StatItem icon="stats-chart-sharp" value="1.450" label="RANKING" />
+          <StatItem icon="albums-sharp" value={String(progress.cardsCount)} label="CARDS" />
+          <StatItem icon="star-sharp" value={String(progress.badgesCount)} label="BADGES" />
+          <StatItem icon="flame-sharp" value={String(progress.streakDays)} label="TAGE STREAK" />
+          <StatItem icon="stats-chart-sharp" value={progress.ranking > 0 ? progress.ranking.toLocaleString('de-DE') : '—'} label="RANKING" />
         </View>
       </View>
     </View>

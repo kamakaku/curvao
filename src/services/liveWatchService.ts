@@ -9,8 +9,6 @@ export const LIVE_WATCH_REQUIRED_SECONDS = __DEV__ ? 60 : 30 * 60;
 
 const START_WINDOW_BEFORE_MS = 15 * 60 * 1000;
 const END_WINDOW_AFTER_MS = 2 * 60 * 60 * 1000 - 15 * 60 * 1000;
-const LOCAL_SESSION_PREFIX = 'curvao.liveWatchSession.';
-let liveWatchSessionsAvailable: boolean | undefined;
 
 export type LiveWatchAvailability = {
   canStart: boolean;
@@ -204,12 +202,6 @@ export async function startLiveWatchSession(input: {
 
   const now = new Date().toISOString();
 
-  if (!(await ensureLiveWatchSessionsCollection())) {
-    const session = buildMockSession(input.userId, input.matchId, now);
-    persistLocalLiveWatchSession(session);
-    return session;
-  }
-
   return await pb.collection('live_watch_sessions').create<LiveWatchSession>({
     user: input.userId,
     match: input.matchId,
@@ -228,16 +220,6 @@ export async function heartbeatLiveWatchSession(input: {
   sessionId: string;
   userId: string;
 }): Promise<LiveWatchSession> {
-  if (!(await ensureLiveWatchSessionsCollection())) {
-    const session = getLocalSessionById(input.sessionId);
-    if (!session) {
-      throw new Error('Diese Live Watch Session wurde nicht gefunden.');
-    }
-
-    assertOwnSession(session, input.userId);
-    return getUpdatedLocalSession(session);
-  }
-
   const session = await pb.collection('live_watch_sessions').getOne<LiveWatchSession>(input.sessionId);
   assertOwnSession(session, input.userId);
 
@@ -287,17 +269,6 @@ export async function completeLiveWatchSession(input: {
     sessionId: heartbeatSession.id,
   });
 
-  if (!(await ensureLiveWatchSessionsCollection())) {
-    const completedSession = {
-      ...heartbeatSession,
-      status: 'completed' as const,
-      completedAt: new Date().toISOString(),
-      rewardClaimed: false,
-    };
-    persistLocalLiveWatchSession(completedSession);
-    return { session: completedSession, rewardPackage };
-  }
-
   const completedSession = await pb.collection('live_watch_sessions').update<LiveWatchSession>(heartbeatSession.id, {
     status: 'completed',
     completedAt: new Date().toISOString(),
@@ -311,18 +282,6 @@ export async function cancelLiveWatchSession(input: {
   sessionId: string;
   userId: string;
 }): Promise<void> {
-  if (!(await ensureLiveWatchSessionsCollection())) {
-    const session = getLocalSessionById(input.sessionId);
-    if (!session) return;
-
-    assertOwnSession(session, input.userId);
-
-    if (session.status === 'active') {
-      persistLocalLiveWatchSession({ ...session, status: 'cancelled' });
-    }
-    return;
-  }
-
   const session = await pb.collection('live_watch_sessions').getOne<LiveWatchSession>(input.sessionId);
   assertOwnSession(session, input.userId);
 
@@ -336,10 +295,6 @@ export async function getLiveWatchSessionForMatch(input: {
   matchId: string;
 }): Promise<LiveWatchSession | null> {
   if (!input.userId || !input.matchId) return null;
-
-  if (!(await ensureLiveWatchSessionsCollection())) {
-    return getLocalSessionForMatch(input.userId, input.matchId);
-  }
 
   try {
     const sessions = await pb.collection('live_watch_sessions').getFullList<LiveWatchSession>({
@@ -357,10 +312,6 @@ async function getAnyLiveWatchSessionForMatch(input: {
   userId: string;
   matchId: string;
 }): Promise<LiveWatchSession | null> {
-  if (!(await ensureLiveWatchSessionsCollection())) {
-    return getAnyLocalSessionForMatch(input.userId, input.matchId);
-  }
-
   try {
     const sessions = await pb.collection('live_watch_sessions').getFullList<LiveWatchSession>({
       filter: `user = "${input.userId}" && match = "${input.matchId}"`,
@@ -374,10 +325,6 @@ async function getAnyLiveWatchSessionForMatch(input: {
 
 export async function getActiveLiveWatchSession(userId: string): Promise<LiveWatchSession | null> {
   if (!userId) return null;
-
-  if (!(await ensureLiveWatchSessionsCollection())) {
-    return getActiveLocalSession(userId);
-  }
 
   try {
     const sessions = await pb.collection('live_watch_sessions').getFullList<LiveWatchSession>({
@@ -415,151 +362,3 @@ function getMatchWindowStatus(match?: Match): LiveWatchAvailability['matchStatus
   return new Date(match.kickoffAt).getTime() > Date.now() ? 'upcoming' : 'archived';
 }
 
-async function ensureLiveWatchSessionsCollection() {
-  if (liveWatchSessionsAvailable !== undefined) {
-    return liveWatchSessionsAvailable;
-  }
-
-  try {
-    await pb.collection('live_watch_sessions').getList(1, 1, { skipTotal: true });
-    liveWatchSessionsAvailable = true;
-  } catch (error) {
-    if (isCollectionMissingError(error)) {
-      liveWatchSessionsAvailable = false;
-    } else {
-      liveWatchSessionsAvailable = true;
-    }
-  }
-
-  return liveWatchSessionsAvailable;
-}
-
-function isCollectionMissingError(error: unknown) {
-  return Boolean(
-    error &&
-    typeof error === 'object' &&
-    'status' in error &&
-    Number((error as { status?: number }).status) === 404,
-  );
-}
-
-function buildMockSession(userId: string, matchId: string, startedAt: string): LiveWatchSession {
-  return {
-    id: `mock_session_${matchId}_${new Date(startedAt).getTime()}`,
-    user: userId,
-    match: matchId,
-    status: 'active',
-    startedAt,
-    requiredSeconds: LIVE_WATCH_REQUIRED_SECONDS,
-    watchedSeconds: 0,
-    lastHeartbeatAt: startedAt,
-    checkpointCount: 0,
-    rewardClaimed: false,
-  };
-}
-
-function getLocalSessionKey(userId: string, matchId: string) {
-  return `${LOCAL_SESSION_PREFIX}${userId}.${matchId}`;
-}
-
-function persistLocalLiveWatchSession(session: LiveWatchSession) {
-  if (typeof globalThis.localStorage === 'undefined') return;
-  globalThis.localStorage.setItem(getLocalSessionKey(session.user, session.match), JSON.stringify(session));
-}
-
-function getLocalSessionForMatch(userId: string, matchId: string): LiveWatchSession | null {
-  if (typeof globalThis.localStorage === 'undefined') return null;
-
-  const rawSession = globalThis.localStorage.getItem(getLocalSessionKey(userId, matchId));
-  if (!rawSession) return null;
-
-  try {
-    const session = JSON.parse(rawSession) as LiveWatchSession;
-    if (session.status !== 'active' && session.status !== 'completed') return null;
-
-    if (session.status === 'active') {
-      return getUpdatedLocalSession(session);
-    }
-
-    return session;
-  } catch {
-    globalThis.localStorage.removeItem(getLocalSessionKey(userId, matchId));
-    return null;
-  }
-}
-
-function getAnyLocalSessionForMatch(userId: string, matchId: string): LiveWatchSession | null {
-  if (typeof globalThis.localStorage === 'undefined') return null;
-
-  const rawSession = globalThis.localStorage.getItem(getLocalSessionKey(userId, matchId));
-  if (!rawSession) return null;
-
-  try {
-    return JSON.parse(rawSession) as LiveWatchSession;
-  } catch {
-    globalThis.localStorage.removeItem(getLocalSessionKey(userId, matchId));
-    return null;
-  }
-}
-
-function getLocalSessionById(sessionId: string): LiveWatchSession | null {
-  if (typeof globalThis.localStorage === 'undefined') return null;
-
-  for (let index = 0; index < globalThis.localStorage.length; index += 1) {
-    const key = globalThis.localStorage.key(index);
-    if (!key?.startsWith(LOCAL_SESSION_PREFIX)) continue;
-
-    const rawSession = globalThis.localStorage.getItem(key);
-    if (!rawSession) continue;
-
-    try {
-      const session = JSON.parse(rawSession) as LiveWatchSession;
-      if (session.id === sessionId) {
-        return getUpdatedLocalSession(session);
-      }
-    } catch {
-      globalThis.localStorage.removeItem(key);
-    }
-  }
-
-  return null;
-}
-
-function getActiveLocalSession(userId: string): LiveWatchSession | null {
-  if (typeof globalThis.localStorage === 'undefined') return null;
-
-  for (let index = 0; index < globalThis.localStorage.length; index += 1) {
-    const key = globalThis.localStorage.key(index);
-    if (!key?.startsWith(`${LOCAL_SESSION_PREFIX}${userId}.`)) continue;
-
-    const rawSession = globalThis.localStorage.getItem(key);
-    if (!rawSession) continue;
-
-    try {
-      const session = JSON.parse(rawSession) as LiveWatchSession;
-      if (session.status === 'active') {
-        return getUpdatedLocalSession(session);
-      }
-    } catch {
-      globalThis.localStorage.removeItem(key);
-    }
-  }
-
-  return null;
-}
-
-function getUpdatedLocalSession(session: LiveWatchSession): LiveWatchSession {
-  if (session.status !== 'active') return session;
-
-  const watchedSeconds = Math.min(
-    session.requiredSeconds,
-    Math.max(session.watchedSeconds ?? 0, Math.floor((Date.now() - new Date(session.startedAt).getTime()) / 1000)),
-  );
-  const updatedSession = {
-    ...session,
-    watchedSeconds,
-    lastHeartbeatAt: new Date().toISOString(),
-  };
-  persistLocalLiveWatchSession(updatedSession);
-  return updatedSession;
-}

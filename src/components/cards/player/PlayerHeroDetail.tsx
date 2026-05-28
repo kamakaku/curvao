@@ -8,7 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CardMoreMenu } from '@/src/components/cards/CardMoreMenu';
 import { TextureOverlay } from '@/src/components/ui/TextureOverlay';
 import { getBondProgress, shareCard, toggleFavorite, upgradeCardBond, copyCardIdToClipboard } from '@/src/services/cardActionService';
-import { getClubCrestSource, getPlayerImageSource } from '@/src/services/cardAssetService';
+import { getClubCrestSource, getPlayerImageSourceFromRecord } from '@/src/services/cardAssetService';
 import { formatEdition, formatOrigin, formatRarity, getCardRelations } from '@/src/services/cardTemplateService';
 import { setMainCard } from '@/src/services/cardService';
 import type { UserCard } from '@/src/types/models';
@@ -55,7 +55,7 @@ export function PlayerHeroDetail({ card }: PlayerHeroDetailProps) {
   const position = player?.position || 'PLAYER';
   const jerseyNumber = player?.shirtNumber ? `${player.shirtNumber}` : '';
   
-  const playerImage = getPlayerImageSource(player?.id);
+  const playerImage = getPlayerImageSourceFromRecord(player);
   const clubCrest = getClubCrestSource(playerClub?.id);
   const primaryColor = playerClub?.primaryColor || '#DC052D';
   const locationLabel = formatLocation(playerClub?.city, playerClub?.country);

@@ -14,7 +14,10 @@ export function isPocketBaseError(error: unknown) {
 export async function tryPocketBase<T>(operation: () => Promise<T>, fallback: () => T | Promise<T>) {
   try {
     return await operation();
-  } catch {
+  } catch (error) {
+    if (__DEV__) {
+      console.error('[PocketBase] Operation failed:', error);
+    }
     return fallback();
   }
 }

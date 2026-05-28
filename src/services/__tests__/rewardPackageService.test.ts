@@ -1,8 +1,7 @@
-import { createLiveWatchRewardPackage, openRewardPackage, createStadiumCheckinRewardPackage } from '../rewardPackageService';
+import { createLiveWatchRewardPackage, openRewardPackage } from '../rewardPackageService';
 import * as rewardEngineService from '../rewardEngineService';
 import * as matchService from '../matchService';
 import { pb } from '../pocketbase';
-import { mockStore } from '../mockStore';
 
 // Mock dependencies
 jest.mock('../rewardEngineService');
@@ -25,7 +24,6 @@ describe('rewardPackageService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockStore.userCards = [];
   });
 
   describe('createLiveWatchRewardPackage', () => {

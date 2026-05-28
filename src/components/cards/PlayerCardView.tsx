@@ -1,7 +1,7 @@
 import { PlayerCardPreview } from '@/src/components/cards/PlayerCardPreview';
 import { PlayerHeroDetail } from '@/src/components/cards/player/PlayerHeroDetail';
 import { PlayerStandardCard } from '@/src/components/cards/PlayerStandardCard';
-import { getClubCrestSource, getPlayerImageSource } from '@/src/services/cardAssetService';
+import { getClubCrestSource, getPlayerImageSourceFromRecord } from '@/src/services/cardAssetService';
 import { getCardRelations } from '@/src/services/cardTemplateService';
 import { getPocketBaseFileUrl } from '@/src/services/pocketbase';
 import type { UserCard } from '@/src/types/models';
@@ -53,7 +53,7 @@ export function PlayerCardView({ card, compact, size, isFlipped }: PlayerCardVie
       position: player?.position ?? 'PLAYER',
       shirtNumber: player?.shirtNumber,
       nationality: player?.nationality,
-      imageSource: getPlayerImageSource(player?.id),
+      imageSource: getPlayerImageSourceFromRecord(player),
     },
     club: {
       name: playerClub?.name ?? card.subtitle ?? 'Curvao Club',

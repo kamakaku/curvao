@@ -1,14 +1,16 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image, ImageBackground, Pressable, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useEffect, useState } from 'react';
 
 import { TextureOverlay } from '@/src/components/ui/TextureOverlay';
 import { CurvaoActionButton } from '@/src/components/dashboard/CurvaoActionButton';
+import { getClubCrestSource } from '@/src/services/cardAssetService';
 import { curvao } from '@/src/theme/curvaoTheme';
 import type { Match } from '@/src/types/models';
+import { formatMatchDate, formatKickoffTime, getCountdownParts } from '@/src/utils/matchUtils';
 
 const stadiumBg = require('@/assets/cards/olympiastadion_reference.png');
-const herthaCrest = require('@/assets/cards/hertha_crest.png');
 
 // Design Tokens for the Artifact
 const ARTIFACT_COLORS = {
@@ -23,13 +25,17 @@ const ARTIFACT_COLORS = {
 };
 
 export function DashboardNextMatch({ match, onPress }: { match: Match; onPress?: () => void }) {
-  // Mocking countdown for the UI look
-  const countdown = {
-    days: '02',
-    hours: '05',
-    minutes: '48',
-    seconds: '12',
-  };
+  const [countdown, setCountdown] = useState(getCountdownParts(match));
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCountdown(getCountdownParts(match));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [match]);
+
+  const homeCrest = getClubCrestSource(match.expand?.homeClub || match.homeClub);
+  const awayCrest = getClubCrestSource(match.expand?.awayClub || match.awayClub);
 
   return (
     <View style={styles.container}>
@@ -54,34 +60,34 @@ export function DashboardNextMatch({ match, onPress }: { match: Match; onPress?:
               <View style={styles.matchTextSection}>
                 <View style={styles.artifactMetaRow}>
                   <Ionicons name="calendar-sharp" size={14} color={ARTIFACT_COLORS.gold} />
-                  <Text style={styles.artifactMetaText}>SA, 17.05.2026 • 15:30</Text>
+                  <Text style={styles.artifactMetaText}>{formatMatchDate(match)} • {formatKickoffTime(match)}</Text>
                 </View>
                 
                 <View style={styles.artifactMetaRow}>
                   <Ionicons name="location-sharp" size={14} color={ARTIFACT_COLORS.gold} />
-                  <Text style={styles.artifactMetaText}>OLYMPIASTADION BERLIN</Text>
+                  <Text style={styles.artifactMetaText}>{match.expand?.stadium?.name || match.stadiumName || 'STADION'}</Text>
                 </View>
               </View>
               
               <View style={styles.logoZone}>
-                <Image source={herthaCrest} style={styles.crestLarge} resizeMode="contain" />
+                <Image source={homeCrest} style={styles.crestLarge} contentFit="contain" />
                 <Text style={styles.vsLogoLabel}>vs.</Text>
-                <View style={styles.placeholderCrestArtifact}>
-                  <Text style={styles.placeholderCrestText}>S04</Text>
-                </View>
+                <Image source={awayCrest} style={styles.crestLarge} contentFit="contain" />
               </View>
             </View>
 
             {/* Consolidated Countdown Dock */}
-            <View style={styles.countdownDock}>
-              <CountdownColumn value={countdown.days} label="TAGE" />
-              <View style={styles.dockDivider} />
-              <CountdownColumn value={countdown.hours} label="STD" />
-              <View style={styles.dockDivider} />
-              <CountdownColumn value={countdown.minutes} label="MIN" />
-              <View style={styles.dockDivider} />
-              <CountdownColumn value={countdown.seconds} label="SEK" />
-            </View>
+            {countdown && (
+              <View style={styles.countdownDock}>
+                <CountdownColumn value={String(Math.floor(Number(countdown.hours) / 24)).padStart(2, '0')} label="TAGE" />
+                <View style={styles.dockDivider} />
+                <CountdownColumn value={String(Number(countdown.hours) % 24).padStart(2, '0')} label="STD" />
+                <View style={styles.dockDivider} />
+                <CountdownColumn value={countdown.minutes} label="MIN" />
+                <View style={styles.dockDivider} />
+                <CountdownColumn value={countdown.seconds} label="SEK" />
+              </View>
+            )}
           </View>
         </ImageBackground>
       </Pressable>
@@ -93,7 +99,6 @@ export function DashboardNextMatch({ match, onPress }: { match: Match; onPress?:
           title="LIVE WATCH"
           subtitle="Spiel live im TV/Radio"
           status="Belohnung sichern"
-          icon="tv-outline"
           onPress={onPress}
         />
 
@@ -102,7 +107,6 @@ export function DashboardNextMatch({ match, onPress }: { match: Match; onPress?:
           title="STADIUM CHECK-IN"
           subtitle="Im Stadion einchecken"
           status="Stadium Card erhalten"
-          icon="location"
           onPress={onPress}
         />
       </View>

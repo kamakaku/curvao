@@ -225,7 +225,7 @@ export async function getMatchdaySetPreview(input: {
   return {
     set,
     progress,
-    featuredSlots: selectFeaturedSlots(progress.slots),
+    featuredSlots: progress.slots,
     completionReward: set.completionReward,
   };
 }
@@ -407,22 +407,6 @@ function parseCompletionReward(input: unknown): SetCompletionReward | undefined 
   } catch {
     return undefined;
   }
-}
-
-function selectFeaturedSlots(slots: ResolvedSetSlot[]) {
-  const preferredOrder: CardSetSlot['slotType'][] = [
-    'match_card',
-    'stadium_card',
-    'mvp_card',
-    'moment_card',
-    'player_card',
-    'live_watch_reward',
-    'stadium_checkin_reward',
-  ];
-
-  const ordered = preferredOrder.flatMap((slotType) => slots.filter((slot) => slot.slot.slotType === slotType));
-  const unique = ordered.filter((slot, index) => ordered.findIndex((item) => item.slot.id === slot.slot.id) === index);
-  return unique.slice(0, 5);
 }
 
 function compareCardSets(left: CardSet, right: CardSet) {

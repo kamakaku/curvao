@@ -1,6 +1,5 @@
 import type { AuthModel } from 'pocketbase';
 
-import { DEMO_USER_ID } from '@/src/data/mockData';
 import { pb, tryPocketBase } from '@/src/services/pocketbase';
 
 export type CurrentUser = {
@@ -28,16 +27,9 @@ export async function getCurrentUser(): Promise<CurrentUser> {
         };
       }
 
-      // Fallback for dev mode without login (optional, remove in production)
-      // const authData = await pb.collection('users').authWithPassword('demo@curvao.local', 'curvao-demo-password');
-      // return {
-      //   id: authData.record.id,
-      //   displayName: String(authData.record.name || authData.record.email || 'Curvao Fan'),
-      //   onboardingCompleted: authData.record.onboardingCompleted,
-      // };
       throw new Error('No authenticated user');
     },
-    () => ({ id: DEMO_USER_ID, displayName: 'Curvao Fan', onboardingCompleted: false }),
+    () => { throw new Error('Auth failed'); },
   );
 }
 
