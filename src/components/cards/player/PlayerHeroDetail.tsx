@@ -6,6 +6,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View, Dimensions } from 'react
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CardMoreMenu } from '@/src/components/cards/CardMoreMenu';
+import { PlayerBiographyBoxes } from '@/src/components/cards/player/PlayerBiographyBoxes';
 import { PlayerCardDetailsAccordion } from '@/src/components/cards/player/PlayerCardDetailsAccordion';
 import { PlayerCardHistoryAccordion } from '@/src/components/cards/player/PlayerCardHistoryAccordion';
 import { PlayerConnectionCompact } from '@/src/components/cards/player/PlayerConnectionCompact';
@@ -16,6 +17,7 @@ import { getBondProgress, shareCard, toggleFavorite, upgradeCardBond, copyCardId
 import { getClubCrestSource, getPlayerCardImageSource } from '@/src/services/cardAssetService';
 import { formatCardOrigin, formatEdition, formatRarity, getCardRelations } from '@/src/services/cardTemplateService';
 import { setMainCard } from '@/src/services/cardService';
+import type { EarnPath } from '@/src/services/wantedCardService';
 import type { UserCard } from '@/src/types/models';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -37,6 +39,7 @@ const HERO_COLORS = {
 
 type PlayerHeroDetailProps = {
   card: UserCard;
+  wantedState?: { isOwned: boolean; isWanted: boolean; onToggleWanted: () => void; };
 };
 
 function formatPosition(position: string) {
@@ -65,7 +68,7 @@ function getResponsiveHeroLastNameSize(text: string) {
   return 24;
 }
 
-export function PlayerHeroDetail({ card }: PlayerHeroDetailProps) {
+export function PlayerHeroDetail({ card, wantedState, earnPaths }: PlayerHeroDetailProps) {
   const insets = useSafeAreaInsets();
   const [currentCard, setCurrentCard] = useState(card);
   const [actionError, setActionError] = useState<string | undefined>();
@@ -149,6 +152,12 @@ export function PlayerHeroDetail({ card }: PlayerHeroDetailProps) {
     { label: 'Rarity', value: formatRarity(currentCard.rarity) },
   ];
   const statusChips = [
+    ...(wantedState?.isOwned
+      ? [{ key: 'owned', icon: 'checkmark-circle' as const, label: 'Besitzt', tone: 'mint' as const }]
+      : []),
+    ...(wantedState && !wantedState.isOwned && wantedState.isWanted
+      ? [{ key: 'wanted', icon: 'search' as const, label: 'Gesucht', tone: 'gold' as const }]
+      : []),
     ...(currentCard.favorite
       ? [{ key: 'favorite', icon: 'heart' as const, label: 'Favorit', tone: 'gold' as const }]
       : []),
@@ -161,6 +170,16 @@ export function PlayerHeroDetail({ card }: PlayerHeroDetailProps) {
   ];
   const actionButtons = useMemo(
     () => [
+      ...(wantedState && !wantedState.isOwned
+        ? [{
+            id: 'wanted',
+            icon: (wantedState.isWanted ? 'bookmark' : 'bookmark-outline') as 'bookmark' | 'bookmark-outline',
+            label: wantedState.isWanted ? 'Gesucht' : 'Suchen',
+            active: wantedState.isWanted,
+            disabled: false,
+            onPress: async () => wantedState.onToggleWanted(),
+          }]
+        : []),
       {
         id: 'main',
         icon: 'star' as const,
@@ -221,7 +240,7 @@ export function PlayerHeroDetail({ card }: PlayerHeroDetailProps) {
         },
       },
     ],
-    [bondProgress.canUpgrade, currentCard],
+    [bondProgress.canUpgrade, currentCard, wantedState],
   );
 
   const runAction = async (action: (typeof actionButtons)[number]) => {
@@ -308,6 +327,7 @@ export function PlayerHeroDetail({ card }: PlayerHeroDetailProps) {
                     styles.cardControlStatusChip,
                     chip.tone === 'gold' && styles.cardControlStatusChipGold,
                     chip.tone === 'muted' && styles.cardControlStatusChipMuted,
+                    chip.tone === 'mint' && styles.cardControlStatusChipMint,
                   ]}
                 >
                   <Ionicons
@@ -317,7 +337,9 @@ export function PlayerHeroDetail({ card }: PlayerHeroDetailProps) {
                         ? HERO_COLORS.goldSoft
                         : chip.tone === 'muted'
                           ? HERO_COLORS.muted
-                          : HERO_COLORS.text
+                          : chip.tone === 'mint'
+                            ? HERO_COLORS.mint
+                            : HERO_COLORS.text
                     }
                     size={13}
                   />
@@ -326,6 +348,7 @@ export function PlayerHeroDetail({ card }: PlayerHeroDetailProps) {
                       styles.cardControlStatusText,
                       chip.tone === 'gold' && styles.cardControlStatusTextGold,
                       chip.tone === 'muted' && styles.cardControlStatusTextMuted,
+                      chip.tone === 'mint' && styles.cardControlStatusTextMint,
                     ]}
                   >
                     {chip.label}
@@ -333,6 +356,27 @@ export function PlayerHeroDetail({ card }: PlayerHeroDetailProps) {
                 </View>
               ))}
             </View>
+
+            {wantedState && !wantedState.isOwned && (
+              <Pressable
+                onPress={wantedState.onToggleWanted}
+                style={({ pressed }) => [
+                  styles.wantedIconButton,
+                  wantedState.isWanted && styles.wantedIconButtonActive,
+                  pressed && styles.optionsButtonPressed,
+                ]}
+              >
+                <Ionicons
+                  name={wantedState.isWanted ? 'bookmark' : 'bookmark-outline'}
+                  color={wantedState.isWanted ? HERO_COLORS.gold : '#FFF'}
+                  size={18}
+                />
+                <Text style={[styles.wantedButtonText, wantedState.isWanted && styles.wantedButtonTextActive]}>
+                  {wantedState.isWanted ? 'GESUCHT' : 'MARKIERE ALS GESUCHT'}
+                </Text>
+              </Pressable>
+            )}
+
             <Pressable
               onPress={() => setIsOptionsOpen(true)}
               style={({ pressed }) => [styles.optionsButton, pressed && styles.optionsButtonPressed]}
@@ -469,6 +513,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#121416',
     borderColor: '#252528',
   },
+  cardControlStatusChipMint: {
+    backgroundColor: 'rgba(34,200,120,0.10)',
+    borderColor: 'rgba(34,200,120,0.28)',
+  },
   cardControlStatusText: {
     color: HERO_COLORS.text,
     fontSize: 11,
@@ -482,6 +530,9 @@ const styles = StyleSheet.create({
   cardControlStatusTextMuted: {
     color: HERO_COLORS.muted,
   },
+  cardControlStatusTextMint: {
+    color: HERO_COLORS.mint,
+  },
   optionsButton: {
     alignItems: 'center',
     backgroundColor: '#101316',
@@ -491,6 +542,31 @@ const styles = StyleSheet.create({
     height: 44,
     justifyContent: 'center',
     width: 52,
+  },
+  wantedIconButton: {
+    alignItems: 'center',
+    backgroundColor: '#101316',
+    borderColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 999,
+    borderWidth: 1,
+    height: 44,
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: 16,
+  },
+  wantedIconButtonActive: {
+    borderColor: HERO_COLORS.gold,
+    backgroundColor: 'rgba(216,170,77,0.15)',
+  },
+  wantedButtonText: {
+    color: '#FFF',
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  wantedButtonTextActive: {
+    color: HERO_COLORS.gold,
   },
   optionsButtonPressed: {
     opacity: 0.72,
@@ -554,7 +630,7 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     letterSpacing: 0,
     textShadow: '0px 4px 20px rgba(0,0,0,0.6)',
-    overflow: 'inherit',
+    overflow: 'visible',
   },
   positionText: {
     color: HERO_COLORS.gold,

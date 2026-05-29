@@ -87,7 +87,7 @@ type SearchEntry = CardSearchResult & { score: number };
 function fromPocketBase(record: PocketBaseWantedCard & { expand?: any }): WantedCard {
   return {
     id: record.id,
-    userId: record.user,
+    userId: record.user || (record as any).userId || (record as any).user_id,
     targetType: record.targetType,
     cardTemplateId: record.cardTemplate,
     playerId: record.player,
@@ -122,23 +122,22 @@ function toPocketBase(input: WantedCardInput) {
 function getWantedKey(input: Pick<WantedCard, 'targetType' | 'cardTemplateId' | 'playerId' | 'matchId' | 'stadiumId' | 'setId'>) {
   return [
     input.targetType,
-    input.cardTemplateId ?? '',
-    input.playerId ?? '',
-    input.matchId ?? '',
-    input.stadiumId ?? '',
-    input.setId ?? '',
+    input.targetType === 'special' ? (input.cardTemplateId ?? '') : '',
+    input.targetType === 'player' ? (input.playerId ?? '') : '',
+    input.targetType === 'match' ? (input.matchId ?? '') : '',
+    input.targetType === 'stadium' ? (input.stadiumId ?? '') : '',
+    input.targetType === 'set' ? (input.setId ?? '') : '',
   ].join(':');
 }
 
 function getTargetKey(input: Pick<WantedCardTarget, 'targetType' | 'cardTemplateId' | 'playerId' | 'matchId' | 'stadiumId' | 'setId' | 'clubId'>) {
   return [
     input.targetType,
-    input.cardTemplateId ?? '',
-    input.playerId ?? '',
-    input.matchId ?? '',
-    input.stadiumId ?? '',
-    input.setId ?? '',
-    input.clubId ?? '',
+    input.targetType === 'special' ? (input.cardTemplateId ?? '') : '',
+    input.targetType === 'player' ? (input.playerId ?? '') : '',
+    input.targetType === 'match' ? (input.matchId ?? '') : '',
+    input.targetType === 'stadium' ? (input.stadiumId ?? '') : '',
+    input.targetType === 'set' ? (input.setId ?? '') : '',
   ].join(':');
 }
 
@@ -207,6 +206,35 @@ export function isTargetOwned(target: WantedCardTarget, userCards: UserCard[]) {
 
 export function isTargetWanted(target: WantedCardTarget, wantedCards: WantedCard[]) {
   return wantedCards.some((wantedCard) => getTargetKey(wantedCard) === getTargetKey(target));
+}
+
+export function wantedCardToSearchResult(wantedCard: WantedCard, userCards: UserCard[]): CardSearchResult {
+  const type = wantedCard.targetType === 'player' ? 'player' : wantedCard.targetType === 'match' ? 'match' : wantedCard.targetType === 'stadium' ? 'stadium' : 'special';
+  const target: WantedCardTarget = {
+    targetType: wantedCard.targetType,
+    cardTemplateId: wantedCard.cardTemplateId,
+    playerId: wantedCard.playerId,
+    matchId: wantedCard.matchId,
+    stadiumId: wantedCard.stadiumId,
+    setId: wantedCard.setId,
+    clubId: wantedCard.clubId,
+    season: wantedCard.season,
+    rarityTarget: wantedCard.rarityTarget,
+    player: wantedCard.expand?.player,
+    club: wantedCard.expand?.club || wantedCard.expand?.player?.expand?.club,
+    stadium: wantedCard.expand?.stadium,
+    match: wantedCard.expand?.match,
+  };
+
+  return {
+    id: wantedCard.id,
+    type,
+    title: wantedCard.note || wantedCard.expand?.player?.displayName || wantedCard.expand?.club?.name || wantedCard.expand?.stadium?.name || wantedCard.expand?.match?.stadiumName || 'Wanted Card',
+    subtitle: wantedCard.expand?.match ? `${wantedCard.expand.match.competition} · ${new Date(wantedCard.expand.match.kickoffAt).toLocaleDateString()}` : wantedCard.expand?.stadium?.city || wantedCard.expand?.club?.name || wantedCard.rarityTarget?.toUpperCase() || 'Details',
+    target,
+    owned: isTargetOwned(target, userCards),
+    wanted: true,
+  };
 }
 
 export function wantedCardToMockUserCard(wantedCard: WantedCard): UserCard {
@@ -278,20 +306,43 @@ export function wantedInputFromTarget(userId: string, target: WantedCardTarget):
 }
 
 export async function getWantedCards(userId: string): Promise<WantedCard[]> {
+  if (!userId) return [];
+  
   try {
+    // 1. Primary attempt: Standard filtered fetch
     const records = await pb.collection('wanted_cards').getFullList<PocketBaseWantedCard>({
       filter: `user = "${userId}"`,
+      expand: 'player,player.club,stadium,match,match.homeClub,match.awayClub',
       sort: '-created',
-      expand: 'player,club,stadium,match',
     });
     return records.map(fromPocketBase);
-  } catch {
-    return [];
+  } catch (error: any) {
+    console.warn('[WantedCardService] Filtered fetch failed (400), trying fallback fetch...', error.message);
+    
+    try {
+      // 2. Fallback: Fetch everything (limited to 500) and filter locally
+      // This works even if the 'user' field is not filterable via API
+      const result = await pb.collection('wanted_cards').getList<PocketBaseWantedCard>(1, 500, {
+          expand: 'player,player.club,stadium,match,match.homeClub,match.awayClub',
+      });
+      
+      const filtered = result.items.filter(item => {
+        const u = item.user || (item as any).userId || (item as any).user_id;
+        return u === userId || (u && typeof u === 'object' && u.id === userId);
+      });
+      
+      return filtered.map(fromPocketBase);
+    } catch (e) {
+      console.error('[WantedCardService] All fetch attempts failed.');
+      return [];
+    }
   }
 }
 
 export async function addWantedCard(input: WantedCardInput): Promise<WantedCard> {
-  return fromPocketBase(await pb.collection('wanted_cards').create<PocketBaseWantedCard>(toPocketBase(input)));
+  const record = await pb.collection('wanted_cards').create<PocketBaseWantedCard>(toPocketBase(input));
+  console.log('[WantedCardService] Created record:', JSON.stringify(record));
+  return fromPocketBase(record);
 }
 
 export async function removeWantedCard(wantedCardId: string): Promise<void> {
@@ -304,16 +355,32 @@ export async function isCardWanted(input: WantedCardInput): Promise<boolean> {
 }
 
 export async function toggleWantedCard(input: WantedCardInput): Promise<{ wanted: boolean; wantedCard?: WantedCard }> {
-  const wantedCards = await getWantedCards(input.userId);
+  let wantedCards: WantedCard[] = [];
+  try {
+    wantedCards = await getWantedCards(input.userId);
+  } catch (error) {
+    console.warn('[WantedCardService] Could not fetch existing wanted cards, proceeding with create attempt.');
+  }
+  
   const existing = wantedCards.find((card) => getWantedKey(card) === getWantedKey(input));
 
   if (existing) {
-    await removeWantedCard(existing.id);
-    return { wanted: false };
+    try {
+      await removeWantedCard(existing.id);
+      return { wanted: false };
+    } catch (error) {
+      console.error('[WantedCardService] Failed to remove wanted card:', error);
+      throw error;
+    }
   }
 
-  const wantedCard = await addWantedCard(input);
-  return { wanted: true, wantedCard };
+  try {
+    const wantedCard = await addWantedCard(input);
+    return { wanted: true, wantedCard };
+  } catch (error: any) {
+    console.error('[WantedCardService] Failed to add wanted card. Schema mismatch suspected:', error.message, error.data);
+    throw error;
+  }
 }
 
 export async function searchWantedTargets(query: string, userCards: UserCard[], wantedCards: WantedCard[]): Promise<CardSearchResult[]> {

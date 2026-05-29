@@ -4,13 +4,6 @@ import { useEffect, useRef } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View, Dimensions, Animated, PanResponder } from 'react-native';
 
 import { CardRenderer } from '@/src/components/cards/CardRenderer';
-import { PlayerBiographyBoxes } from '@/src/components/cards/player/PlayerBiographyBoxes';
-import { PlayerConnectionStats } from '@/src/components/cards/player/PlayerConnectionStats';
-import { PlayerHighlightMoments } from '@/src/components/cards/player/PlayerHighlightMoments';
-import { PlayerCardInfoAccordion } from '@/src/components/cards/player/PlayerCardInfoAccordion';
-import { StadiumBiographyBoxes } from '@/src/components/cards/stadium/StadiumBiographyBoxes';
-import { MatchBiographyBoxes } from '@/src/components/cards/match/MatchBiographyBoxes';
-import { WantedToggleButton } from '@/src/components/cards/WantedToggleButton';
 import { curvao } from '@/src/theme/curvaoTheme';
 import type { CardSearchResult, EarnPath } from '@/src/services/wantedCardService';
 import type { UserCard } from '@/src/types/models';
@@ -101,10 +94,10 @@ export function WantedDetailModal({ result, earnPaths, visible, onClose, onToggl
     archived: false,
     favorite: false,
     expand: {
-      player: result.target.player,
+      player: result.target.player ? { ...result.target.player, expand: { club: result.target.club } } : undefined,
       club: result.target.club,
-      stadium: result.target.stadium,
-      match: result.target.match,
+      stadium: result.target.stadium ? { ...result.target.stadium, expand: { club: result.target.club } } : undefined,
+      match: result.target.match ? { ...result.target.match, expand: { homeClub: result.target.club, awayClub: result.target.club } } : undefined,
     } as any,
   };
 
@@ -144,104 +137,84 @@ export function WantedDetailModal({ result, earnPaths, visible, onClose, onToggl
         <Image source={texture} style={[styles.texture, { pointerEvents: 'none' }]} />
         
         {isHeroType ? (
-          <View 
-            {...panResponder.panHandlers}
-            style={styles.dragHandleContainer}
-          >
-            <View style={styles.dragHandle} />
-          </View>
+          <>
+            <View 
+              {...panResponder.panHandlers}
+              style={styles.dragHandleContainer}
+            >
+              <View style={styles.dragHandle} />
+            </View>
+            <CardRenderer 
+              card={mockCard} 
+              playerSize="large" 
+              wantedState={{
+                isOwned: result.owned,
+                isWanted: result.wanted,
+                onToggleWanted: onToggleWanted,
+              }} 
+              earnPaths={earnPaths}
+            />
+            {/* Contextual actions displayed at the very bottom, after the Hero Detail's own scroll content */}
+            <View style={styles.floatingActions}>
+               {onOpenSet ? (
+                <Pressable onPress={onOpenSet} style={styles.actionButton}>
+                  <Text style={styles.actionLabel}>Zum Set</Text>
+                </Pressable>
+              ) : null}
+              {onOpenMatch ? (
+                <Pressable onPress={onOpenMatch} style={styles.actionButton}>
+                  <Text style={styles.actionLabel}>Zum Match</Text>
+                </Pressable>
+              ) : null}
+            </View>
+          </>
         ) : (
-          <View {...panResponder.panHandlers} style={styles.topBar}>
-            <View style={styles.topBarButton} />
-            <Text style={styles.topBarTitle}>WANTED {result.type.toUpperCase()}</Text>
-            <Pressable onPress={handleClose} style={styles.topBarButton}>
-              <Ionicons name="close" size={28} color="#FFF" />
-            </Pressable>
-          </View>
-        )}
+          <>
+            <View {...panResponder.panHandlers} style={styles.topBar}>
+              <View style={styles.topBarButton} />
+              <Text style={styles.topBarTitle}>WANTED {result.type.toUpperCase()}</Text>
+              <Pressable onPress={handleClose} style={styles.topBarButton}>
+                <Ionicons name="close" size={28} color="#FFF" />
+              </Pressable>
+            </View>
 
-        <ScrollView 
-          style={styles.scroll} 
-          contentContainerStyle={[
-            styles.scrollContent,
-            isHeroType && styles.fullBleedScroll
-          ]}
-          showsVerticalScrollIndicator={false}
-          bounces={false}
-        >
-          {isHeroType ? (
-            <View style={styles.heroWrapper}>
-              <CardRenderer card={mockCard} playerSize="large" />
-              <View style={styles.heroStatusContainer}>
+            <ScrollView 
+              style={styles.scroll} 
+              contentContainerStyle={styles.scrollContent}
+              showsVerticalScrollIndicator={false}
+              bounces={false}
+            >
+              <View style={styles.preview}>
+                <View style={styles.cardWrapper}>
+                  <CardRenderer card={mockCard} playerSize="large" />
+                </View>
                 <Text style={styles.status}>{result.owned ? 'BESITZT' : result.wanted ? 'GESUCHT' : 'NOCH NICHT VERDIENT'}</Text>
               </View>
-            </View>
-          ) : (
-            <View style={styles.preview}>
-              <View style={styles.cardWrapper}>
-                <CardRenderer card={mockCard} playerSize="large" />
-              </View>
-              <Text style={styles.status}>{result.owned ? 'BESITZT' : result.wanted ? 'GESUCHT' : 'NOCH NICHT VERDIENT'}</Text>
-            </View>
-          )}
 
-          <View style={styles.infoContent}>
-            {!isHeroType && (
-              <View style={styles.baseInfo}>
-                <Text style={styles.title}>{result.title}</Text>
-                <Text style={styles.subtitle}>{result.subtitle}</Text>
-              </View>
-            )}
+              <View style={styles.infoContent}>
+                <View style={styles.baseInfo}>
+                  <Text style={styles.title}>{result.title}</Text>
+                  <Text style={styles.subtitle}>{result.subtitle}</Text>
+                </View>
 
-            {isPlayer && (
-              <>
-                <PlayerConnectionStats card={mockCard} />
-                <PlayerBiographyBoxes card={mockCard} />
-                <PlayerHighlightMoments />
-                <PlayerCardInfoAccordion card={mockCard} />
-              </>
-            )}
-            {isStadium && <StadiumBiographyBoxes card={mockCard} />}
-            {isMatch && (
-              <>
-                <MatchBiographyBoxes card={mockCard} />
-              </>
-            )}
-
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>SO KANNST DU DIESE CARD VERDIENEN</Text>
-                {earnPaths.map((path) => (
-                  <View key={path.id} style={[styles.earnPath, !path.available && styles.disabledPath]}>
-                    <Ionicons color={path.available ? curvao.colors.gold : curvao.colors.muted} name={path.available ? 'checkmark-circle-outline' : 'ellipse-outline'} size={17} />
-                    <View style={styles.pathCopy}>
-                      <Text style={styles.pathTitle}>{path.title}</Text>
-                      <Text style={styles.pathSubtitle}>{path.subtitle}</Text>
-                      {path.type === 'pack' ? <Text style={styles.disclaimer}>Keine Garantie</Text> : null}
-                    </View>
-                  </View>
-                ))}
+                <View style={styles.actions}>
+                  {onOpenSet ? (
+                    <Pressable onPress={onOpenSet} style={styles.actionButton}>
+                      <Text style={styles.actionLabel}>Zum Set</Text>
+                    </Pressable>
+                  ) : null}
+                  {onOpenMatch ? (
+                    <Pressable onPress={onOpenMatch} style={styles.actionButton}>
+                      <Text style={styles.actionLabel}>Zum Match</Text>
+                    </Pressable>
+                  ) : null}
+                </View>
               </View>
 
-              {!result.owned ? (
-                <WantedToggleButton onPress={onToggleWanted} wanted={result.wanted} />
-              ) : null}
-
-              <View style={styles.actions}>
-                {onOpenSet ? (
-                  <Pressable onPress={onOpenSet} style={styles.actionButton}>
-                    <Text style={styles.actionLabel}>Zum Set</Text>
-                  </Pressable>
-                ) : null}
-                {onOpenMatch ? (
-                  <Pressable onPress={onOpenMatch} style={styles.actionButton}>
-                    <Text style={styles.actionLabel}>Zum Match</Text>
-                  </Pressable>
-                ) : null}
-              </View>
-            </View>
-
-            <View style={{ height: 120 }} />
-          </ScrollView>
+              <View style={{ height: 120 }} />
+            </ScrollView>
+          </>
+        )}
       </Animated.View>
     </Modal>
   );
@@ -309,15 +282,7 @@ const styles = StyleSheet.create({
     width: '100%',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  heroStatusContainer: {
-    marginTop: 24,
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-    borderRadius: 999,
-    backgroundColor: 'rgba(216,170,77,0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(216,170,77,0.2)',
+    flex: 1,
   },
   preview: {
     alignItems: 'center',
@@ -424,5 +389,15 @@ const styles = StyleSheet.create({
     color: curvao.colors.gold,
     fontSize: curvao.typography.size.xs,
     fontWeight: '900',
+  },
+  floatingActions: {
+    position: 'absolute',
+    bottom: 40,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 12,
+    zIndex: 1000,
   },
 });

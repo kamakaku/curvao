@@ -78,6 +78,9 @@ export function PlayerCardPreview({ card, player, club, size = 'compact' }: Play
 
           <View style={[styles.topRow, large && styles.topRowLarge]}>
             <Text style={[styles.rarity, large && styles.rarityLarge]}>{formatRarity(card.rarity).toUpperCase()}</Text>
+            {!large && clubCrest ? (
+              <Image source={clubCrest} style={styles.crestCompact} contentFit="contain" />
+            ) : null}
           </View>
 
           <View style={[styles.playerImageContainer, large && styles.playerImageContainerLarge]}>
@@ -188,13 +191,10 @@ const styles = StyleSheet.create({
   rarityLarge: {
     fontSize: 12,
   },
-  crest: {
-    height: 34,
-    width: 34,
-  },
-  crestLarge: {
-    height: 48,
-    width: 48,
+  crestCompact: {
+    height: 20,
+    width: 20,
+    opacity: 0.85,
   },
   playerImageContainer: {
     bottom: 0,

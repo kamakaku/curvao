@@ -1,30 +1,26 @@
 import { StyleSheet } from 'react-native';
-import { StadiumLargeCard } from '@/src/components/cards/StadiumLargeCard';
 import { StadiumCardPreview } from '@/src/components/cards/StadiumCardPreview';
 import { StadiumHeroDetail } from '@/src/components/cards/stadium/StadiumHeroDetail';
 import type { UserCard } from '@/src/types/models';
+import type { EarnPath } from '@/src/services/wantedCardService';
 
 type StadiumCardViewProps = {
   card: UserCard;
   compact?: boolean;
   size?: 'small' | 'medium' | 'large' | 'hero';
   isFlipped?: boolean;
+  wantedState?: { isOwned: boolean; isWanted: boolean; onToggleWanted: () => void; };
+  earnPaths?: EarnPath[];
 };
 
-export function StadiumCardView({ card, compact, size, isFlipped }: StadiumCardViewProps) {
+export function StadiumCardView({ card, compact, size, wantedState, earnPaths }: StadiumCardViewProps) {
   const resolvedSize = size ?? (compact ? 'small' : 'large');
 
   if (compact || resolvedSize === 'small') {
     return <StadiumCardPreview card={card} />;
   }
 
-  // Large version (from Stadium detail modal etc)
-  if (resolvedSize === 'large' || resolvedSize === 'hero') {
-    return <StadiumHeroDetail card={card} />;
-  }
-
-  // Medium or other (Framed version)
-  return <StadiumLargeCard card={card} isFlipped={isFlipped} />;
+  return <StadiumHeroDetail card={card} wantedState={wantedState} earnPaths={earnPaths} />;
 }
 
 const styles = StyleSheet.create({

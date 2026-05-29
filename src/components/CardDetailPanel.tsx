@@ -7,6 +7,8 @@ import { CardRenderer } from '@/src/components/cards/CardRenderer';
 import { PlayerHeroDetail } from '@/src/components/cards/player/PlayerHeroDetail';
 import { StadiumBiographyBoxes } from '@/src/components/cards/stadium/StadiumBiographyBoxes';
 import { MatchBiographyBoxes } from '@/src/components/cards/match/MatchBiographyBoxes';
+import { MatchHeroDetail } from '@/src/components/cards/match/MatchHeroDetail';
+import { StadiumHeroDetail } from '@/src/components/cards/stadium/StadiumHeroDetail';
 import { curvao } from '@/src/theme/curvaoTheme';
 import type { UserCard } from '@/src/types/models';
 
@@ -16,7 +18,7 @@ export function CardDetailPanel({ card, onClose }: { card?: UserCard; cards?: Us
   const insets = useSafeAreaInsets();
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [internalCard, setInternalCard] = useState<UserCard | undefined>(undefined);
-  const translateY = useRef(new Animated.Value(0)).current;
+  const translateY = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
   const isPlayer = internalCard?.type === 'player';
   const isStadium = internalCard?.type === 'stadium';
   const isMatch = internalCard?.type === 'match';
@@ -25,10 +27,9 @@ export function CardDetailPanel({ card, onClose }: { card?: UserCard; cards?: Us
   const closePanel = useCallback(() => {
     Animated.timing(translateY, {
       toValue: SCREEN_HEIGHT,
-      duration: 220,
+      duration: 200,
       useNativeDriver: true,
     }).start(() => {
-      translateY.setValue(0);
       setIsModalVisible(false);
       setInternalCard(undefined);
       onClose?.();
@@ -38,40 +39,41 @@ export function CardDetailPanel({ card, onClose }: { card?: UserCard; cards?: Us
   const panResponder = useMemo(
     () =>
       PanResponder.create({
-        onStartShouldSetPanResponder: () => isHeroType,
+        onStartShouldSetPanResponder: () => true,
         onMoveShouldSetPanResponder: (_, gestureState) =>
-          isHeroType && gestureState.dy > 8 && Math.abs(gestureState.dy) > Math.abs(gestureState.dx),
-        onMoveShouldSetPanResponderCapture: (_, gestureState) =>
-          isHeroType && gestureState.dy > 8 && Math.abs(gestureState.dy) > Math.abs(gestureState.dx),
+          gestureState.dy > 8 && Math.abs(gestureState.dy) > Math.abs(gestureState.dx),
         onPanResponderMove: (_, gestureState) => {
           if (gestureState.dy > 0) {
             translateY.setValue(gestureState.dy);
           }
         },
         onPanResponderRelease: (_, gestureState) => {
-          if (gestureState.dy > 120 || gestureState.vy > 0.85) {
+          if (gestureState.dy > 120 || (gestureState.dy > 40 && gestureState.vy > 0.5)) {
             closePanel();
-            return;
+          } else {
+            Animated.spring(translateY, {
+              toValue: 0,
+              useNativeDriver: true,
+              friction: 8,
+              tension: 40,
+            }).start();
           }
-
-          Animated.spring(translateY, {
-            toValue: 0,
-            useNativeDriver: true,
-            friction: 8,
-            tension: 70,
-          }).start();
         },
       }),
-    [closePanel, isHeroType, translateY],
+    [closePanel, translateY],
   );
 
   useEffect(() => {
     if (card && !isModalVisible) {
-      translateY.setValue(0);
       setInternalCard(card);
       setIsModalVisible(true);
+      Animated.spring(translateY, {
+        toValue: 0,
+        useNativeDriver: true,
+        friction: 9,
+        tension: 30,
+      }).start();
     } else if (card && isModalVisible && card.id !== internalCard?.id) {
-      translateY.setValue(0);
       setInternalCard(card);
     } else if (!card && isModalVisible) {
       closePanel();
@@ -87,113 +89,99 @@ export function CardDetailPanel({ card, onClose }: { card?: UserCard; cards?: Us
   }
 
   return (
-    <Modal visible={isModalVisible} animationType="fade" transparent onRequestClose={handleClose}>
-      {/* Backdrop */}
-      <View style={[StyleSheet.absoluteFill, styles.backdrop]}>
+    <Modal visible={isModalVisible} animationType="none" transparent onRequestClose={handleClose}>
+      <View style={StyleSheet.absoluteFill}>
+        <Animated.View 
+          style={[
+            StyleSheet.absoluteFill, 
+            { 
+              backgroundColor: 'rgba(0,0,0,0.85)',
+              opacity: translateY.interpolate({
+                inputRange: [0, SCREEN_HEIGHT / 2],
+                outputRange: [1, 0],
+                extrapolate: 'clamp'
+              })
+            }
+          ]} 
+        />
         <Pressable style={StyleSheet.absoluteFill} onPress={handleClose} />
       </View>
 
       <View style={styles.container} pointerEvents="box-none">
         <View style={[styles.listItem, isHeroType && styles.heroListItem]}>
-          <Animated.View style={[styles.panel, isHeroType && styles.heroPanel, { transform: [{ translateY }] }]}>
+          <Animated.View 
+            style={[
+              styles.panel, 
+              isHeroType && styles.heroPanel, 
+              { transform: [{ translateY }] }
+            ]}
+          >
             {isHeroType ? (
               <>
-                {isPlayer && internalCard ? (
+                {internalCard?.type === 'player' ? (
                   <PlayerHeroDetail card={internalCard} />
-                ) : (
-                  <ScrollView 
-                    style={styles.heroScroll} 
-                    contentContainerStyle={styles.heroScrollContent}
-                    showsVerticalScrollIndicator={false}
-                  >
-                    {internalCard && <CardRenderer card={internalCard} playerSize="large" />}
-                    
-                    <View style={styles.infoContent}>
-                      {isStadium && (
-                        <>
-                          <StadiumBiographyBoxes card={internalCard} />
-                        </>
-                      )}
-                      {isMatch && (
-                        <>
-                          <MatchBiographyBoxes card={internalCard} />
-                        </>
-                      )}
-                    </View>
-                    
-                    <View style={{ height: 100 }} />
-                  </ScrollView>
-                )}
-                <View style={[styles.dragHandleArea, { top: Math.max(-15, insets.top-15) }]} {...panResponder.panHandlers}>
+                ) : internalCard?.type === 'match' ? (
+                  <MatchHeroDetail card={internalCard} />
+                ) : internalCard?.type === 'stadium' ? (
+                  <StadiumHeroDetail card={internalCard} />
+                ) : null}
+                <View style={[styles.dragHandleArea, { top: Math.max(10, insets.top) }]} {...panResponder.panHandlers}>
                   <View style={styles.dragHandle} />
                 </View>
               </>
             ) : (
-              internalCard && <CardRenderer card={internalCard} playerSize="large" />
+              <View style={styles.nonHeroWrapper}>
+                 <CardRenderer card={internalCard} playerSize="large" />
+                 <Pressable onPress={handleClose} style={styles.closeOverlayButton}>
+                    <Ionicons name="close-circle" size={48} color="rgba(255,255,255,0.7)" />
+                 </Pressable>
+              </View>
             )}
           </Animated.View>
         </View>
       </View>
-
-      {onClose && !isHeroType && (
-        <View style={styles.closeButtonContainer} pointerEvents="box-none">
-          <Pressable style={styles.closeButton} onPress={handleClose}>
-            <Ionicons name="close-circle" size={48} color="rgba(255,255,255,0.7)" />
-          </Pressable>
-        </View>
-      )}
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
   backdrop: {
-    backgroundColor: 'rgba(0,0,0,0.9)',
+    // Transparent for backdrop, controlled by animated overlay
   },
   container: {
     ...StyleSheet.absoluteFillObject,
-    justifyContent: 'center',
+    justifyContent: 'flex-end',
     alignItems: 'center',
   },
   listItem: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: curvao.spacing.lg,
     width: '100%',
+    flex: 1,
   },
   heroListItem: {
     alignItems: 'stretch',
     flex: 1,
     justifyContent: 'flex-end',
-    padding: 0,
   },
   panel: {
-    width: 340,
-    maxWidth: '95%',
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: '100%',
+    backgroundColor: '#080A09',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    overflow: 'hidden',
+    height: '94%', // Let it peek from the top
   },
   heroPanel: {
-    alignItems: 'stretch',
-    backgroundColor: '#080A09', // Dark background for full bleed
     flex: 1,
-    justifyContent: 'flex-start',
-    width: '100%',
-    maxWidth: '100%',
     height: '100%',
   },
-  heroScroll: {
+  nonHeroWrapper: {
     flex: 1,
-  },
-  heroScrollContent: {
-    alignItems: 'stretch',
-  },
-  infoContent: {
-    gap: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
   },
   dragHandleArea: {
     alignItems: 'center',
-    elevation: 20,
     height: 50,
     left: 0,
     paddingTop: 14,
@@ -208,14 +196,7 @@ const styles = StyleSheet.create({
     height: 4,
     width: 48,
   },
-  closeButtonContainer: {
-    position: 'absolute',
-    bottom: curvao.spacing.xl,
-    width: '100%',
-    alignItems: 'center',
-  },
-  closeButton: {
-    alignItems: 'center',
-    justifyContent: 'center',
+  closeOverlayButton: {
+    marginTop: 40,
   },
 });

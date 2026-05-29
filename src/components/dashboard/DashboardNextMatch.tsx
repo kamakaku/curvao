@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Image, ImageBackground, Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View, Pressable, ImageBackground } from 'react-native';
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useState } from 'react';
 

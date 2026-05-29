@@ -1,26 +1,25 @@
 import { PlayerCardPreview } from '@/src/components/cards/PlayerCardPreview';
 import { PlayerHeroDetail } from '@/src/components/cards/player/PlayerHeroDetail';
-import { PlayerStandardCard } from '@/src/components/cards/PlayerStandardCard';
-import { getClubCrestSource, getPlayerCardImageSource } from '@/src/services/cardAssetService';
 import { getCardRelations } from '@/src/services/cardTemplateService';
-import { getPocketBaseFileUrl } from '@/src/services/pocketbase';
 import type { UserCard } from '@/src/types/models';
+import type { EarnPath } from '@/src/services/wantedCardService';
 
 type PlayerCardViewProps = {
   card: UserCard;
   compact?: boolean;
   size?: 'small' | 'medium' | 'large' | 'hero';
   isFlipped?: boolean;
+  wantedState?: { isOwned: boolean; isWanted: boolean; onToggleWanted: () => void; };
+  earnPaths?: EarnPath[];
 };
 
-export function PlayerCardView({ card, compact, size, isFlipped }: PlayerCardViewProps) {
-  const { player, playerClub, match, homeClub, awayClub } = getCardRelations(card);
+export function PlayerCardView({ card, compact, size, wantedState, earnPaths }: PlayerCardViewProps) {
+  const { player, playerClub } = getCardRelations(card);
   const [fallbackFirstName = card.title, fallbackLastName = ''] = card.title.split(' ');
   const resolvedSize = size ?? (compact ? 'small' : 'large');
-  const pocketBaseCrestUrl = getPocketBaseFileUrl(playerClub, playerClub?.crest);
 
   // Use specialized Preview component for compact views
-  if (compact) {
+  if (compact || resolvedSize === 'small') {
     const displayPlayer = player || {
       id: 'unknown',
       lastName: fallbackLastName || fallbackFirstName,
@@ -46,76 +45,6 @@ export function PlayerCardView({ card, compact, size, isFlipped }: PlayerCardVie
     );
   }
 
-  if (resolvedSize === 'large') {
-    const displayPlayer = player || {
-      id: 'unknown',
-      lastName: fallbackLastName || fallbackFirstName,
-      displayName: card.title,
-      position: 'PLAYER',
-      active: true,
-      club: 'unknown',
-    };
-
-    const displayClub = playerClub || {
-      id: 'unknown',
-      name: card.subtitle || 'Curvao Club',
-      shortName: 'CVO',
-    };
-
-    return <PlayerCardPreview card={card} player={displayPlayer} club={displayClub} size="large" />;
-  }
-
-  const commonProps = {
-    player: {
-      firstName: player?.firstName ?? fallbackFirstName,
-      lastName: player?.lastName ?? fallbackLastName,
-      displayName: player?.displayName ?? card.title,
-      position: player?.position ?? 'PLAYER',
-      shirtNumber: player?.shirtNumber,
-      nationality: player?.nationality,
-      imageSource: getPlayerCardImageSource(player),
-    },
-    club: {
-      name: playerClub?.name ?? card.subtitle ?? 'Curvao Club',
-      shortName: playerClub?.shortName,
-      crestUrl: pocketBaseCrestUrl,
-      crestSource: pocketBaseCrestUrl ? undefined : getClubCrestSource(playerClub?.id),
-      primaryColor: playerClub?.primaryColor,
-      secondaryColor: playerClub?.secondaryColor,
-    },
-    match: match
-      ? {
-          homeShortName: homeClub?.shortName,
-          awayShortName: awayClub?.shortName,
-          homeScore: match.homeScore,
-          awayScore: match.awayScore,
-          kickoffAt: match.kickoffAt,
-        }
-      : undefined,
-    card: {
-      rarity: card.rarity,
-      editionNumber: card.editionNumber,
-      editionSize: card.editionSize,
-      origin: card.origin,
-      bondLevel: card.bondLevel,
-      archived: card.archived,
-      tradable: card.tradable,
-      bound: card.bound,
-      seenLiveCount: card.stadiumVisitCount ?? 0,
-      momentsCount: 0, // Placeholder for future data
-      acquiredAt: card.acquiredAt,
-    },
-  };
-
-  if (resolvedSize === 'hero') {
-    return <PlayerHeroDetail card={card} />;
-  }
-
-  return (
-    <PlayerStandardCard
-      size={resolvedSize}
-      isFlipped={isFlipped}
-      {...commonProps}
-    />
-  );
+  // All non-compact variations (medium, large, hero) now use the unified Hero design.
+  return <PlayerHeroDetail card={card} wantedState={wantedState} earnPaths={earnPaths} />;
 }

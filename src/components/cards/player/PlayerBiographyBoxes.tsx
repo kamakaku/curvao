@@ -44,34 +44,6 @@ function positionLong(position: string) {
 
 export function PlayerBiographyBoxes({ card }: { card: UserCard }) {
   const { player, stadium } = getCardRelations(card);
-
-  return (
-    <View style={styles.container}>
-      <Text style={styles.sectionTitle}>SPIELER INFOS</Text>
-      <View style={styles.grid}>
-        <InfoBox 
-          icon="location-outline" 
-          label="STADION" 
-          value={stadium?.name?.toUpperCase() || card.stadiumName?.toUpperCase() || '—'} 
-        />
-        <InfoBox 
-          icon="flag-outline" 
-          label="NATIONALITÄT" 
-          value={player?.nationality?.toUpperCase() || '—'} 
-        />
-        <InfoBox 
-          icon="shirt-outline" 
-          label="POSITION" 
-          value={positionLong(player?.position || 'PLAYER').toUpperCase()} 
-        />
-        <InfoBox 
-          icon="calendar-outline" 
-          label="SAISON" 
-          value={card.expand?.match?.season || '2025/2026'} 
-        />
-      </View>
-    </View>
-  );
 }
 
 const styles = StyleSheet.create({

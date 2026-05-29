@@ -21,6 +21,7 @@ import {
   removeWantedCard,
   searchWantedTargets,
   toggleWantedCard,
+  wantedCardToSearchResult,
   wantedInputFromTarget,
   type CardSearchResult,
   type EarnPath,
@@ -177,7 +178,7 @@ export default function CollectionScreen() {
     if (!selectedWantedResult || !userId) return;
 
     try {
-      await toggleWantedCard(wantedInputFromTarget(userId, selectedWantedResult.target));
+      const toggleResult = await toggleWantedCard(wantedInputFromTarget(userId, selectedWantedResult.target));
       const refreshedWanted = await getWantedCards(userId);
       const wantedWithPaths = await Promise.all(
         refreshedWanted.map(async (wantedCard) => ({
@@ -186,7 +187,11 @@ export default function CollectionScreen() {
         })),
       );
       setWantedCards(wantedWithPaths);
-    } finally {
+      
+      // Update the selected result so the modal re-renders with new status
+      setSelectedWantedResult(prev => prev ? { ...prev, wanted: toggleResult.wanted } : undefined);
+    } catch (error) {
+      console.error('Failed to toggle wanted status:', error);
     }
   }
 
@@ -253,6 +258,7 @@ export default function CollectionScreen() {
                       subtitle={wantedCard.expand?.match ? `${wantedCard.expand.match.competition} · ${new Date(wantedCard.expand.match.kickoffAt).toLocaleDateString()}` : wantedCard.expand?.stadium?.city || wantedCard.expand?.club?.name || wantedCard.rarityTarget?.toUpperCase() || undefined}
                       earnPaths={earnPaths}
                       onRemove={() => void handleRemoveWantedCard(wantedCard.id)}
+                      onPress={() => void openWantedResult(wantedCardToSearchResult(wantedCard, cards))}
                       onOpenSet={wantedCard.setId ? () => router.push(`/collection/set/${wantedCard.setId}`) : undefined}
                       onOpenMatch={wantedCard.matchId ? () => router.push(`/matches/${wantedCard.matchId}`) : undefined}
                     />
