@@ -22,15 +22,42 @@ type PlayerCardPreviewProps = {
   size?: 'compact' | 'large';
 };
 
+function getResponsiveBgSize(text: string, large: boolean) {
+  const base = large ? 170 : 128;
+  const length = Math.max(1, text.length);
+  if (length <= 2) return base;
+  if (length === 3) return large ? 156 : 116;
+  if (length === 4) return large ? 138 : 100;
+  return large ? 118 : 86;
+}
+
+function getResponsiveLastNameSize(text: string, large: boolean) {
+  const length = Math.max(1, text.length);
+  if (large) {
+    if (length <= 8) return 42;
+    if (length <= 11) return 36;
+    if (length <= 14) return 30;
+    return 25;
+  }
+
+  if (length <= 8) return 28;
+  if (length <= 11) return 24;
+  if (length <= 14) return 20;
+  return 17;
+}
+
 export function PlayerCardPreview({ card, player, club, size = 'compact' }: PlayerCardPreviewProps) {
   const playerImage = getPlayerCardImageSource(player);
-  const clubCrest = getClubCrestSource(club.id);
+  const clubCrest = getClubCrestSource(club);
   const primaryColor = club.primaryColor || '#DC052D';
   const [firstName = player.displayName, ...rest] = player.displayName.split(' ');
   const lastName = rest.join(' ') || player.lastName || player.displayName;
   const jerseyNumber = player.shirtNumber ? String(player.shirtNumber) : '';
   const giantWord = (jerseyNumber || (lastName || player.displayName).slice(0, 3)).toUpperCase();
   const large = size === 'large';
+  const bgFontSize = getResponsiveBgSize(giantWord, large);
+  const lastNameFontSize = getResponsiveLastNameSize(lastName.toUpperCase(), large);
+  const lastNameLineHeight = Math.round(lastNameFontSize * 0.95);
 
   return (
     <View style={styles.container}>
@@ -39,7 +66,15 @@ export function PlayerCardPreview({ card, player, club, size = 'compact' }: Play
           <TextureOverlay opacity={0.08} style={StyleSheet.absoluteFill} />
           <LinearGradient colors={['rgba(0,0,0,0.08)', 'rgba(0,0,0,0.42)']} style={StyleSheet.absoluteFill} />
 
-          <Text style={[styles.bgWord, large && styles.bgWordLarge]}>{giantWord}</Text>
+          <Text
+            style={[
+              styles.bgWord,
+              large && styles.bgWordLarge,
+              { fontSize: bgFontSize },
+            ]}
+          >
+            {giantWord}
+          </Text>
 
           <View style={[styles.topRow, large && styles.topRowLarge]}>
             <Text style={[styles.rarity, large && styles.rarityLarge]}>{formatRarity(card.rarity).toUpperCase()}</Text>
@@ -52,8 +87,16 @@ export function PlayerCardPreview({ card, player, club, size = 'compact' }: Play
           <LinearGradient colors={['transparent', 'rgba(0,0,0,0.18)', 'rgba(0,0,0,0.55)']} style={styles.bottomFade} />
 
           <View style={[styles.nameBlock, large && styles.nameBlockLarge]}>
-            <Text adjustsFontSizeToFit minimumFontScale={0.65} style={[styles.firstName, large && styles.firstNameLarge]} numberOfLines={1}>{firstName.toUpperCase()}</Text>
-            <Text adjustsFontSizeToFit minimumFontScale={0.58} style={[styles.lastName, large && styles.lastNameLarge]} numberOfLines={2}>{lastName.toUpperCase()}</Text>
+            <Text style={[styles.firstName, large && styles.firstNameLarge]} numberOfLines={1}>{firstName.toUpperCase()}</Text>
+            <Text
+              style={[
+                styles.lastName,
+                large && styles.lastNameLarge,
+                { fontSize: lastNameFontSize, lineHeight: lastNameLineHeight },
+              ]}
+            >
+              {lastName.toUpperCase()}
+            </Text>
           </View>
 
           {large ? (
@@ -110,17 +153,18 @@ const styles = StyleSheet.create({
   },
   bgWord: {
     color: '#14161A',
-    fontSize: 128,
     fontWeight: '900',
-    left: 4,
     letterSpacing: -6,
     opacity: 0.72,
     position: 'absolute',
+    right: 4,
+    left: 4,
+    textAlign: 'center',
     top: 12,
   },
   bgWordLarge: {
-    fontSize: 170,
     left: 8,
+    right: 8,
     top: 24,
   },
   topRow: {
@@ -185,7 +229,7 @@ const styles = StyleSheet.create({
   nameBlockLarge: {
     bottom: 18,
     left: 18,
-    right: 96,
+    right: 18,
   },
   firstName: {
     color: CURVAO.text,
@@ -198,14 +242,11 @@ const styles = StyleSheet.create({
   },
   lastName: {
     color: CURVAO.text,
-    fontSize: 28,
     fontWeight: '900',
     letterSpacing: -1.2,
-    lineHeight: 28,
   },
   lastNameLarge: {
-    fontSize: 42,
-    lineHeight: 40,
+    letterSpacing: -1.4,
   },
   footer: {
     backgroundColor: '#1D2126',

@@ -8,10 +8,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CardMoreMenu } from '@/src/components/cards/CardMoreMenu';
 import { PlayerCardDetailsAccordion } from '@/src/components/cards/player/PlayerCardDetailsAccordion';
 import { PlayerConnectionCompact } from '@/src/components/cards/player/PlayerConnectionCompact';
-import { PlayerContextChips } from '@/src/components/cards/player/PlayerContextChips';
 import { PlayerDetailSummaryBar } from '@/src/components/cards/player/PlayerDetailSummaryBar';
 import { PlayerHighlightMomentCompact } from '@/src/components/cards/player/PlayerHighlightMomentCompact';
-import { PlayerInfoChips } from '@/src/components/cards/player/PlayerInfoChips';
 import { TextureOverlay } from '@/src/components/ui/TextureOverlay';
 import { getBondProgress, shareCard, toggleFavorite, upgradeCardBond, copyCardIdToClipboard } from '@/src/services/cardActionService';
 import { getClubCrestSource, getPlayerCardImageSource } from '@/src/services/cardAssetService';
@@ -48,24 +46,44 @@ function formatPosition(position: string) {
   return position;
 }
 
+function getResponsiveHeroBgSize(text: string) {
+  const length = Math.max(1, text.length);
+  if (length <= 2) return 360;
+  if (length === 3) return 320;
+  if (length === 4) return 280;
+  return 240;
+}
+
+function getResponsiveHeroLastNameSize(text: string) {
+  const length = Math.max(1, text.length);
+  if (length <= 8) return 70;
+  if (length <= 10) return 60;
+  if (length <= 12) return 50;
+  if (length <= 14) return 40;
+  if (length <= 16) return 30;
+  return 24;
+}
+
 export function PlayerHeroDetail({ card }: PlayerHeroDetailProps) {
   const insets = useSafeAreaInsets();
   const [currentCard, setCurrentCard] = useState(card);
   const [actionError, setActionError] = useState<string | undefined>();
   const [isOptionsOpen, setIsOptionsOpen] = useState(false);
-  const { player, playerClub, match } = getCardRelations(currentCard);
+  const { player, playerClub } = getCardRelations(currentCard);
   const bondProgress = getBondProgress(currentCard);
   
   const firstName = player?.firstName || currentCard.title.split(' ')[0] || '';
   const lastName = player?.lastName || currentCard.title.split(' ').slice(1).join(' ') || currentCard.title;
   const position = player?.position || 'PLAYER';
   const jerseyNumber = player?.shirtNumber ? `${player.shirtNumber}` : '';
+  const bgHeroWord = jerseyNumber ? jerseyNumber.padStart(2, '0') : '00';
+  const bgHeroFontSize = getResponsiveHeroBgSize(bgHeroWord);
+  const heroLastNameFontSize = getResponsiveHeroLastNameSize(lastName.toUpperCase());
+  const heroLastNameLineHeight = Math.round(heroLastNameFontSize * 0.95);
   
   const playerImage = getPlayerCardImageSource(player);
-  const clubCrest = getClubCrestSource(playerClub?.id);
+  const clubCrest = getClubCrestSource(playerClub);
   const primaryColor = playerClub?.primaryColor || playerClub?.secondaryColor || '#16181A';
-  const locationLabel = formatLocation(playerClub?.city, playerClub?.country);
-  const statusSummary = `${currentCard.favorite ? 'Favorite' : 'Not Favorite'} · ${currentCard.tradable ? 'Tradable' : 'Not Tradable'}`;
   const liveMatches = currentCard.stadiumVisitCount ?? 0;
   const momentsCount = 0;
   const ownedVariantsCount = 1;
@@ -119,21 +137,6 @@ export function PlayerHeroDetail({ card }: PlayerHeroDetailProps) {
       progress: Math.min(1, ownedVariantsCount / 5),
     },
   ];
-  const infoChips = [
-    { icon: 'shirt-outline' as const, label: 'Position', value: formatPosition(position) || '—' },
-    { icon: 'calendar-outline' as const, label: 'Saison', value: currentCard.expand?.match?.season || '2025/2026' },
-    ...(player?.nationality ? [{ icon: 'flag-outline' as const, label: 'Nationalität', value: player.nationality }] : []),
-    ...(playerClub?.name ? [{ icon: 'people-outline' as const, label: 'Club', value: playerClub.name }] : []),
-    ...((card.stadiumName || match?.stadiumName) ? [{ icon: 'location-outline' as const, label: 'Stadion', value: card.stadiumName || match?.stadiumName || '—' }] : []),
-  ];
-  const contextChips = [
-    ...(currentCard.origin === 'live_verified' ? [{ icon: 'play-circle-outline' as const, label: 'LIVE VERIFIED' }] : []),
-    ...(currentCard.origin === 'stadium_verified' ? [{ icon: 'location-outline' as const, label: 'STADIUM VERIFIED' }] : []),
-    { icon: 'medal-outline' as const, label: `BOND LEVEL ${bondProgress.level}` },
-    { icon: 'shirt-outline' as const, label: formatPosition(position) },
-    ...(match ? [{ icon: 'football-outline' as const, label: 'MATCHDAY READY' }] : []),
-    { icon: 'calendar-outline' as const, label: `CURVAO ${currentCard.expand?.match?.season || '2025/26'}` },
-  ];
   const detailRows = [
     { label: 'Origin', value: formatCardOrigin(currentCard.origin) },
     { label: 'Acquired On', value: formatDate(currentCard.acquiredAt) },
@@ -143,6 +146,17 @@ export function PlayerHeroDetail({ card }: PlayerHeroDetailProps) {
     { label: 'Card ID', value: currentCard.id.toUpperCase() },
     { label: 'Season', value: currentCard.expand?.match?.season || '2025/2026' },
     { label: 'Rarity', value: formatRarity(currentCard.rarity) },
+  ];
+  const statusChips = [
+    ...(currentCard.favorite
+      ? [{ key: 'favorite', icon: 'heart' as const, label: 'Favorit', tone: 'gold' as const }]
+      : []),
+    ...(currentCard.tradable
+      ? [{ key: 'tradable', icon: 'swap-horizontal' as const, label: 'Tauschbar', tone: 'default' as const }]
+      : []),
+    ...(currentCard.bound
+      ? [{ key: 'bound', icon: 'lock-closed' as const, label: 'Gebunden', tone: 'muted' as const }]
+      : []),
   ];
   const actionButtons = useMemo(
     () => [
@@ -231,13 +245,10 @@ export function PlayerHeroDetail({ card }: PlayerHeroDetailProps) {
 
         {jerseyNumber ? (
           <View style={styles.bgNumberContainer}>
-            <Text 
-              style={styles.bgNumberText} 
-              numberOfLines={1} 
-              adjustsFontSizeToFit 
-              minimumFontScale={0.1}
+            <Text
+              style={[styles.bgNumberText, { fontSize: bgHeroFontSize, lineHeight: Math.round(bgHeroFontSize * 0.97) }]}
             >
-              {jerseyNumber.padStart(2, '0')}
+              {bgHeroWord}
             </Text>
           </View>
         ) : null}
@@ -257,6 +268,11 @@ export function PlayerHeroDetail({ card }: PlayerHeroDetailProps) {
               <Text style={styles.seasonText}>{currentCard.expand?.match?.season || '2025/26'}</Text>
             </View>
           </View>
+          <View style={styles.clubBadgeContainerTop}>
+            <View style={styles.crestCircle}>
+              <Image source={clubCrest} style={styles.clubCrest} contentFit="contain" />
+            </View>
+          </View>
         </View>
 
         <View style={styles.bottomInfo}>
@@ -269,27 +285,15 @@ export function PlayerHeroDetail({ card }: PlayerHeroDetailProps) {
             >
               {firstName.toUpperCase()}
             </Text>
-            <Text 
-              style={styles.lastName} 
-              numberOfLines={1} 
-              adjustsFontSizeToFit 
-              minimumFontScale={0.5}
+            <Text
+              numberOfLines={1}
+              style={[styles.lastName, { fontSize: heroLastNameFontSize, lineHeight: heroLastNameLineHeight }]}
             >
               {lastName.toUpperCase()}
             </Text>
           </View>
           
           <Text style={styles.positionText}>{formatPosition(position)}</Text>
-          <View style={styles.locationPill}>
-            <Ionicons color="#F4F1E8" name="location-sharp" size={13} />
-            <Text style={styles.locationText}>{locationLabel}</Text>
-          </View>
-        </View>
-
-        <View style={styles.clubBadgeContainer}>
-          <View style={styles.crestCircle}>
-            <Image source={clubCrest} style={styles.clubCrest} contentFit="contain" />
-          </View>
         </View>
         </View>
 
@@ -298,13 +302,37 @@ export function PlayerHeroDetail({ card }: PlayerHeroDetailProps) {
 
           <View style={styles.cardControlRowCompact}>
             <View style={styles.cardControlStatusList}>
-              <View style={[styles.cardControlStatusChip, (currentCard.favorite || currentCard.tradable) && styles.cardControlStatusChipActive]}>
-                <Ionicons name={currentCard.favorite ? 'heart' : 'heart-outline'} color={currentCard.favorite ? HERO_COLORS.goldSoft : HERO_COLORS.muted} size={13} />
-                <Ionicons name="swap-horizontal" color={currentCard.tradable ? HERO_COLORS.goldSoft : HERO_COLORS.muted} size={13} />
-                <Text style={[styles.cardControlStatusText, (currentCard.favorite || currentCard.tradable) && styles.cardControlStatusTextActive]}>
-                  {statusSummary}
-                </Text>
-              </View>
+              {statusChips.map((chip) => (
+                <View
+                  key={chip.key}
+                  style={[
+                    styles.cardControlStatusChip,
+                    chip.tone === 'gold' && styles.cardControlStatusChipGold,
+                    chip.tone === 'muted' && styles.cardControlStatusChipMuted,
+                  ]}
+                >
+                  <Ionicons
+                    name={chip.icon}
+                    color={
+                      chip.tone === 'gold'
+                        ? HERO_COLORS.goldSoft
+                        : chip.tone === 'muted'
+                          ? HERO_COLORS.muted
+                          : HERO_COLORS.text
+                    }
+                    size={13}
+                  />
+                  <Text
+                    style={[
+                      styles.cardControlStatusText,
+                      chip.tone === 'gold' && styles.cardControlStatusTextGold,
+                      chip.tone === 'muted' && styles.cardControlStatusTextMuted,
+                    ]}
+                  >
+                    {chip.label}
+                  </Text>
+                </View>
+              ))}
             </View>
             <Pressable
               onPress={() => setIsOptionsOpen(true)}
@@ -321,10 +349,6 @@ export function PlayerHeroDetail({ card }: PlayerHeroDetailProps) {
             items={connectionItems}
             title="DEINE VERBINDUNG"
           />
-
-          <PlayerInfoChips chips={infoChips} title="SPIELER INFOS" />
-
-          <PlayerContextChips chips={contextChips} title="CARD KONTEXT" />
 
           <PlayerHighlightMomentCompact />
 
@@ -360,11 +384,6 @@ export function PlayerHeroDetail({ card }: PlayerHeroDetailProps) {
   );
 }
 
-function formatLocation(city?: string, country?: string) {
-  const countryShort = country ? country.slice(0, 2).toUpperCase() : 'UK';
-  return `${city ?? 'LONDON'}, ${countryShort}`;
-}
-
 function formatDate(value?: string) {
   if (!value) return 'UNKNOWN DATE';
   return new Date(value).toLocaleDateString('de-DE');
@@ -387,19 +406,21 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 16,
   },
   bgNumberContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
     position: 'absolute',
-    bottom: '18%',
     left: -22,
     right: -22,
+    top: '10%',
+    bottom: '18%',
     zIndex: 3,
   },
   bgNumberText: {
     color: '#111317',
-    fontSize: 360,
     fontWeight: '900',
+    includeFontPadding: false,
     opacity: 0.44,
     letterSpacing: 0,
-    lineHeight: 350,
     textAlign: 'center',
   },
   topMeta: {
@@ -433,28 +454,35 @@ const styles = StyleSheet.create({
   },
   cardControlStatusChip: {
     alignItems: 'center',
-    backgroundColor: '#262B31',
-    borderColor: 'rgba(255,255,255,0.07)',
+    backgroundColor: '#16181A',
+    borderColor: '#252528',
     borderRadius: 999,
     borderWidth: 1,
     flexDirection: 'row',
-    gap: 5,
-    minHeight: 32,
-    paddingHorizontal: 10,
+    gap: 6,
+    minHeight: 30,
+    paddingHorizontal: 11,
   },
-  cardControlStatusChipActive: {
+  cardControlStatusChipGold: {
     backgroundColor: 'rgba(216,170,77,0.10)',
-    borderColor: 'rgba(216,170,77,0.30)',
+    borderColor: 'rgba(216,170,77,0.28)',
+  },
+  cardControlStatusChipMuted: {
+    backgroundColor: '#121416',
+    borderColor: '#252528',
   },
   cardControlStatusText: {
-    color: 'rgba(244,241,232,0.74)',
-    fontSize: 10,
+    color: HERO_COLORS.text,
+    fontSize: 11,
     fontWeight: '900',
-    letterSpacing: 0.4,
+    letterSpacing: 0.5,
     textTransform: 'uppercase',
   },
-  cardControlStatusTextActive: {
+  cardControlStatusTextGold: {
     color: HERO_COLORS.goldSoft,
+  },
+  cardControlStatusTextMuted: {
+    color: HERO_COLORS.muted,
   },
   optionsButton: {
     alignItems: 'center',
@@ -525,11 +553,10 @@ const styles = StyleSheet.create({
   },
   lastName: {
     color: '#FFF',
-    fontSize: 86,
     fontWeight: '900',
     letterSpacing: 0,
-    lineHeight: 82,
     textShadow: '0px 4px 20px rgba(0,0,0,0.6)',
+    overflow: 'inherit',
   },
   positionText: {
     color: HERO_COLORS.gold,
@@ -556,10 +583,9 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     letterSpacing: 0.8,
   },
-  clubBadgeContainer: {
-    position: 'absolute',
-    bottom: 32,
-    right: 32,
+  clubBadgeContainerTop: {
+    alignItems: 'flex-end',
+    justifyContent: 'flex-start',
     zIndex: 20,
   },
   crestCircle: {
