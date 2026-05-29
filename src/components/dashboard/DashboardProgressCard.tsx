@@ -128,7 +128,7 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: CURVAO_DESIGN.surface,
-    borderRadius: 20,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: CURVAO_DESIGN.borderGold,
     padding: 16,
@@ -215,7 +215,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.2)',
     paddingVertical: 10,
     paddingHorizontal: 8,
-    borderRadius: 10,
+    borderRadius: 8,
     alignItems: 'center',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.03)',

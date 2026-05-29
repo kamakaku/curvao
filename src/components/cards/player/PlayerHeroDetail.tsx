@@ -6,10 +6,16 @@ import { Pressable, ScrollView, StyleSheet, Text, View, Dimensions } from 'react
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CardMoreMenu } from '@/src/components/cards/CardMoreMenu';
+import { PlayerCardDetailsAccordion } from '@/src/components/cards/player/PlayerCardDetailsAccordion';
+import { PlayerConnectionCompact } from '@/src/components/cards/player/PlayerConnectionCompact';
+import { PlayerContextChips } from '@/src/components/cards/player/PlayerContextChips';
+import { PlayerDetailSummaryBar } from '@/src/components/cards/player/PlayerDetailSummaryBar';
+import { PlayerHighlightMomentCompact } from '@/src/components/cards/player/PlayerHighlightMomentCompact';
+import { PlayerInfoChips } from '@/src/components/cards/player/PlayerInfoChips';
 import { TextureOverlay } from '@/src/components/ui/TextureOverlay';
 import { getBondProgress, shareCard, toggleFavorite, upgradeCardBond, copyCardIdToClipboard } from '@/src/services/cardActionService';
-import { getClubCrestSource, getPlayerImageSourceFromRecord } from '@/src/services/cardAssetService';
-import { formatEdition, formatOrigin, formatRarity, getCardRelations } from '@/src/services/cardTemplateService';
+import { getClubCrestSource, getPlayerCardImageSource } from '@/src/services/cardAssetService';
+import { formatCardOrigin, formatEdition, formatRarity, getCardRelations } from '@/src/services/cardTemplateService';
 import { setMainCard } from '@/src/services/cardService';
 import type { UserCard } from '@/src/types/models';
 
@@ -47,7 +53,7 @@ export function PlayerHeroDetail({ card }: PlayerHeroDetailProps) {
   const [currentCard, setCurrentCard] = useState(card);
   const [actionError, setActionError] = useState<string | undefined>();
   const [isOptionsOpen, setIsOptionsOpen] = useState(false);
-  const { player, playerClub, match, homeClub, awayClub } = getCardRelations(currentCard);
+  const { player, playerClub, match } = getCardRelations(currentCard);
   const bondProgress = getBondProgress(currentCard);
   
   const firstName = player?.firstName || currentCard.title.split(' ')[0] || '';
@@ -55,19 +61,88 @@ export function PlayerHeroDetail({ card }: PlayerHeroDetailProps) {
   const position = player?.position || 'PLAYER';
   const jerseyNumber = player?.shirtNumber ? `${player.shirtNumber}` : '';
   
-  const playerImage = getPlayerImageSourceFromRecord(player);
+  const playerImage = getPlayerCardImageSource(player);
   const clubCrest = getClubCrestSource(playerClub?.id);
-  const primaryColor = playerClub?.primaryColor || '#DC052D';
+  const primaryColor = playerClub?.primaryColor || playerClub?.secondaryColor || '#16181A';
   const locationLabel = formatLocation(playerClub?.city, playerClub?.country);
-  const matchLabel = match ? `${homeClub?.shortName ?? homeClub?.name ?? 'Home'} VS ${awayClub?.shortName ?? awayClub?.name ?? 'Away'}` : 'NO MATCH';
   const statusSummary = `${currentCard.favorite ? 'Favorite' : 'Not Favorite'} · ${currentCard.tradable ? 'Tradable' : 'Not Tradable'}`;
-  const infoCards = [
-    { id: 'rarity', icon: 'diamond' as const, label: 'Rarity', value: formatRarity(currentCard.rarity), meta: 'Frame' },
-    { id: 'origin', icon: 'shield-checkmark' as const, label: 'Origin', value: formatOrigin(currentCard.origin), meta: 'Proof' },
-    { id: 'edition', icon: 'albums' as const, label: 'Edition', value: formatEdition(currentCard), meta: currentCard.tradable ? 'Tradable' : 'Bound' },
-    { id: 'club', label: 'CLUB', value: playerClub?.shortName ?? playerClub?.name ?? 'CURVAO', meta: playerClub?.city ?? 'CURVAO' },
-    { id: 'match', label: 'MATCH', value: matchLabel, meta: match ? formatDate(match.kickoffAt) : 'ARCHIVE' },
-    { id: 'acquired', icon: 'calendar' as const, label: 'Erhalten', value: formatDate(currentCard.acquiredAt), meta: 'Collection' },
+  const liveMatches = currentCard.stadiumVisitCount ?? 0;
+  const momentsCount = 0;
+  const ownedVariantsCount = 1;
+  const verificationType = currentCard.origin === 'live_verified'
+    ? 'Live Verified'
+    : currentCard.origin === 'stadium_verified'
+      ? 'Stadium Verified'
+      : currentCard.origin === 'fan_claimed'
+        ? 'Fan Claimed'
+        : currentCard.origin === 'self_earned'
+          ? 'Self Earned'
+          : '—';
+  const summaryMetrics = [
+    {
+      label: 'Bond Level',
+      value: `L${bondProgress.level}`,
+      sub: bondProgress.requiredXp
+        ? `${bondProgress.currentXp.toLocaleString('de-DE')} / ${bondProgress.requiredXp.toLocaleString('de-DE')} XP`
+        : `${bondProgress.currentXp.toLocaleString('de-DE')} XP`,
+      progress: bondProgress.progress,
+      tone: 'gold' as const,
+    },
+  ];
+  const connectionItems = [
+    {
+      icon: 'people-outline' as const,
+      value: `${liveMatches}`,
+      label: 'Live Matches\nGesehen',
+      sub: 'Erlebt & verifiziert',
+      progress: Math.min(1, liveMatches / 20),
+    },
+    {
+      icon: 'heart-outline' as const,
+      value: `${bondProgress.level}`,
+      label: 'Fan Bond\nLevel',
+      sub: `Von ${bondProgress.isMaxLevel ? bondProgress.level : 5}`,
+      progress: bondProgress.progress,
+    },
+    {
+      icon: 'trophy-outline' as const,
+      value: `${momentsCount}`,
+      label: 'Momente\nGesammelt',
+      sub: 'Besondere Augenblicke',
+      progress: Math.min(1, momentsCount / 10),
+    },
+    {
+      icon: 'star-outline' as const,
+      value: `${ownedVariantsCount}`,
+      label: 'Karten\nBesitzt',
+      sub: 'Von 5 verfügbar',
+      progress: Math.min(1, ownedVariantsCount / 5),
+    },
+  ];
+  const infoChips = [
+    { icon: 'shirt-outline' as const, label: 'Position', value: formatPosition(position) || '—' },
+    { icon: 'calendar-outline' as const, label: 'Saison', value: currentCard.expand?.match?.season || '2025/2026' },
+    ...(player?.nationality ? [{ icon: 'flag-outline' as const, label: 'Nationalität', value: player.nationality }] : []),
+    ...(playerClub?.name ? [{ icon: 'people-outline' as const, label: 'Club', value: playerClub.name }] : []),
+    ...((card.stadiumName || match?.stadiumName) ? [{ icon: 'location-outline' as const, label: 'Stadion', value: card.stadiumName || match?.stadiumName || '—' }] : []),
+  ];
+  const contextChips = [
+    ...(currentCard.origin === 'live_verified' ? [{ icon: 'play-circle-outline' as const, label: 'LIVE VERIFIED' }] : []),
+    ...(currentCard.origin === 'stadium_verified' ? [{ icon: 'location-outline' as const, label: 'STADIUM VERIFIED' }] : []),
+    { icon: 'medal-outline' as const, label: `BOND LEVEL ${bondProgress.level}` },
+    { icon: 'shirt-outline' as const, label: formatPosition(position) },
+    ...(match ? [{ icon: 'football-outline' as const, label: 'MATCHDAY READY' }] : []),
+    { icon: 'calendar-outline' as const, label: `CURVAO ${currentCard.expand?.match?.season || '2025/26'}` },
+  ];
+  const detailRows = [
+    { label: 'Origin', value: formatCardOrigin(currentCard.origin) },
+    { label: 'Acquired On', value: formatDate(currentCard.acquiredAt) },
+    { label: 'Edition', value: formatEdition(currentCard) },
+    { label: 'Status', value: currentCard.bound ? 'Bound' : currentCard.tradable ? 'Tradable' : 'Locked' },
+    { label: 'Verification Type', value: verificationType },
+    { label: 'Card ID', value: currentCard.id.toUpperCase() },
+    { label: 'Season', value: currentCard.expand?.match?.season || '2025/2026' },
+    { label: 'Rarity', value: formatRarity(currentCard.rarity) },
   ];
   const actionButtons = useMemo(
     () => [
@@ -219,62 +294,41 @@ export function PlayerHeroDetail({ card }: PlayerHeroDetailProps) {
         </View>
 
         <View style={styles.lowerContent}>
-        <View style={styles.cardControlRow}>
-          <View style={styles.cardControlStatusList}>
-            <View style={[styles.cardControlStatusChip, (currentCard.favorite || currentCard.tradable) && styles.cardControlStatusChipActive]}>
-              <Ionicons name={currentCard.favorite ? 'heart' : 'heart-outline'} color={currentCard.favorite ? HERO_COLORS.goldSoft : HERO_COLORS.muted} size={13} />
-              <Ionicons name="swap-horizontal" color={currentCard.tradable ? HERO_COLORS.goldSoft : HERO_COLORS.muted} size={13} />
-              <Text style={[styles.cardControlStatusText, (currentCard.favorite || currentCard.tradable) && styles.cardControlStatusTextActive]}>
-                {statusSummary}
-              </Text>
-            </View>
-          </View>
-          <Pressable
-            onPress={() => setIsOptionsOpen(true)}
-            style={({ pressed }) => [styles.optionsButton, pressed && styles.optionsButtonPressed]}
-          >
-            <Ionicons name="ellipsis-horizontal" color="#FFF" size={22} />
-          </Pressable>
-        </View>
+          <PlayerDetailSummaryBar metrics={summaryMetrics} />
 
-        <View style={styles.bondPanel}>
-          <View style={styles.bondHeader}>
-            <View>
-              <Text style={styles.bondLabel}>PLAYER BOND</Text>
-              <Text style={styles.bondTitle}>Level {bondProgress.level}</Text>
-            </View>
-            <Text style={styles.bondXp}>{bondProgress.currentXp}/{bondProgress.requiredXp || 'MAX'} XP</Text>
-          </View>
-          <View style={styles.progressTrack}>
-            <View style={[styles.progressFill, { width: `${Math.round(bondProgress.progress * 100)}%` }]} />
-          </View>
-          <Text style={styles.bondHint}>
-            {bondProgress.isMaxLevel ? 'Max Level erreicht.' : `${bondProgress.remainingXp} XP bis zum nächsten Bond-Level.`}
-          </Text>
-        </View>
-
-        {actionError ? <Text style={styles.actionError}>{actionError}</Text> : null}
-
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>CARD INTEL</Text>
-          <View style={styles.paginationDots}>
-            <View style={[styles.dot, styles.dotActive]} />
-            <View style={styles.dot} />
-          </View>
-        </View>
-
-        <View style={styles.infoGrid}>
-          {infoCards.map((item) => (
-            <View key={item.id} style={styles.infoCard}>
-              <View style={styles.infoTopRow}>
-                <Ionicons name={item.icon ?? 'information-circle'} color={HERO_COLORS.goldSoft} size={17} />
-                <Text style={styles.infoLabel}>{item.label}</Text>
+          <View style={styles.cardControlRowCompact}>
+            <View style={styles.cardControlStatusList}>
+              <View style={[styles.cardControlStatusChip, (currentCard.favorite || currentCard.tradable) && styles.cardControlStatusChipActive]}>
+                <Ionicons name={currentCard.favorite ? 'heart' : 'heart-outline'} color={currentCard.favorite ? HERO_COLORS.goldSoft : HERO_COLORS.muted} size={13} />
+                <Ionicons name="swap-horizontal" color={currentCard.tradable ? HERO_COLORS.goldSoft : HERO_COLORS.muted} size={13} />
+                <Text style={[styles.cardControlStatusText, (currentCard.favorite || currentCard.tradable) && styles.cardControlStatusTextActive]}>
+                  {statusSummary}
+                </Text>
               </View>
-              <Text style={styles.infoValue} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.72}>{item.value}</Text>
-              <Text style={styles.infoMeta} numberOfLines={1}>{item.meta}</Text>
             </View>
-          ))}
-        </View>
+            <Pressable
+              onPress={() => setIsOptionsOpen(true)}
+              style={({ pressed }) => [styles.optionsButton, pressed && styles.optionsButtonPressed]}
+            >
+              <Ionicons name="ellipsis-horizontal" color="#FFF" size={22} />
+            </Pressable>
+          </View>
+
+          {actionError ? <Text style={styles.actionError}>{actionError}</Text> : null}
+
+          <PlayerConnectionCompact
+            ctaLabel={`LEVEL ${bondProgress.level} FAN >`}
+            items={connectionItems}
+            title="DEINE VERBINDUNG"
+          />
+
+          <PlayerInfoChips chips={infoChips} title="SPIELER INFOS" />
+
+          <PlayerContextChips chips={contextChips} title="CARD KONTEXT" />
+
+          <PlayerHighlightMomentCompact />
+
+          <PlayerCardDetailsAccordion rows={detailRows} />
         </View>
       </ScrollView>
 
@@ -320,7 +374,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     width: '100%',
-    backgroundColor: '#1F2227',
+    backgroundColor: '#07080A',
   },
   content: {
     paddingBottom: 120,
@@ -329,8 +383,8 @@ const styles = StyleSheet.create({
     width: '100%',
     overflow: 'hidden',
     position: 'relative',
-    borderBottomLeftRadius: 32,
-    borderBottomRightRadius: 32,
+    borderBottomLeftRadius: 16,
+    borderBottomRightRadius: 16,
   },
   bgNumberContainer: {
     position: 'absolute',
@@ -362,6 +416,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
     justifyContent: 'space-between',
+  },
+  cardControlRowCompact: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 12,
+    justifyContent: 'space-between',
+    marginTop: 14,
+    paddingHorizontal: 20,
   },
   cardControlStatusList: {
     flex: 1,
@@ -516,10 +578,8 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   lowerContent: {
-    backgroundColor: '#1F2227',
-    gap: 12,
-    paddingHorizontal: 16,
-    paddingTop: 18,
+    backgroundColor: '#07080A',
+    paddingTop: 0,
   },
   bondPanel: {
     backgroundColor: '#262B31',
@@ -644,7 +704,7 @@ const styles = StyleSheet.create({
   infoCard: {
     backgroundColor: '#2B3037',
     borderColor: 'rgba(255,255,255,0.06)',
-    borderRadius: 16,
+    borderRadius: 8,
     borderWidth: 1,
     minHeight: 96,
     padding: 12,

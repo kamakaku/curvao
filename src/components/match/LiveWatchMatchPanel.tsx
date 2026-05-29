@@ -382,7 +382,7 @@ const styles = StyleSheet.create({
   iconCircle: {
     width: 44,
     height: 44,
-    borderRadius: 16,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: 'rgba(216,170,77,0.24)',
     backgroundColor: 'rgba(216,170,77,0.08)',
@@ -465,7 +465,7 @@ const styles = StyleSheet.create({
   rewardIconWrap: {
     width: 54,
     height: 54,
-    borderRadius: 16,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: 'rgba(216,170,77,0.24)',
     backgroundColor: 'rgba(216,170,77,0.08)',

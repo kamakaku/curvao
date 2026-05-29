@@ -48,7 +48,7 @@ export function AuthButton({ label, onPress, disabled, loading, variant = 'prima
 const styles = StyleSheet.create({
   container: {
     height: 54,
-    borderRadius: 12,
+    borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
     width: '100%',

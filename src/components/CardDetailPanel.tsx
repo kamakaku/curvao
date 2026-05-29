@@ -1,13 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Dimensions, Modal, PanResponder, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Animated, Dimensions, Modal, PanResponder, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CardRenderer } from '@/src/components/cards/CardRenderer';
-import { PlayerConnectionStats } from '@/src/components/cards/player/PlayerConnectionStats';
-import { PlayerBiographyBoxes } from '@/src/components/cards/player/PlayerBiographyBoxes';
-import { PlayerHighlightMoments } from '@/src/components/cards/player/PlayerHighlightMoments';
-import { PlayerCardInfoAccordion } from '@/src/components/cards/player/PlayerCardInfoAccordion';
+import { PlayerHeroDetail } from '@/src/components/cards/player/PlayerHeroDetail';
 import { StadiumBiographyBoxes } from '@/src/components/cards/stadium/StadiumBiographyBoxes';
 import { MatchBiographyBoxes } from '@/src/components/cards/match/MatchBiographyBoxes';
 import { curvao } from '@/src/theme/curvaoTheme';
@@ -101,36 +98,32 @@ export function CardDetailPanel({ card, onClose }: { card?: UserCard; cards?: Us
           <Animated.View style={[styles.panel, isHeroType && styles.heroPanel, { transform: [{ translateY }] }]}>
             {isHeroType ? (
               <>
-                <ScrollView 
-                  style={styles.heroScroll} 
-                  contentContainerStyle={styles.heroScrollContent}
-                  showsVerticalScrollIndicator={false}
-                >
-                  {internalCard && <CardRenderer card={internalCard} playerSize="large" />}
-                  
-                  <View style={styles.infoContent}>
-                    {isPlayer && (
-                      <>
-                        <PlayerConnectionStats card={internalCard} />
-                        <PlayerBiographyBoxes card={internalCard} />
-                        <PlayerHighlightMoments />
-                        <PlayerCardInfoAccordion card={internalCard} />
-                      </>
-                    )}
-                    {isStadium && (
-                      <>
-                        <StadiumBiographyBoxes card={internalCard} />
-                      </>
-                    )}
-                    {isMatch && (
-                      <>
-                        <MatchBiographyBoxes card={internalCard} />
-                      </>
-                    )}
-                  </View>
-                  
-                  <View style={{ height: 100 }} />
-                </ScrollView>
+                {isPlayer && internalCard ? (
+                  <PlayerHeroDetail card={internalCard} />
+                ) : (
+                  <ScrollView 
+                    style={styles.heroScroll} 
+                    contentContainerStyle={styles.heroScrollContent}
+                    showsVerticalScrollIndicator={false}
+                  >
+                    {internalCard && <CardRenderer card={internalCard} playerSize="large" />}
+                    
+                    <View style={styles.infoContent}>
+                      {isStadium && (
+                        <>
+                          <StadiumBiographyBoxes card={internalCard} />
+                        </>
+                      )}
+                      {isMatch && (
+                        <>
+                          <MatchBiographyBoxes card={internalCard} />
+                        </>
+                      )}
+                    </View>
+                    
+                    <View style={{ height: 100 }} />
+                  </ScrollView>
+                )}
                 <View style={[styles.dragHandleArea, { top: Math.max(-15, insets.top-15) }]} {...panResponder.panHandlers}>
                   <View style={styles.dragHandle} />
                 </View>

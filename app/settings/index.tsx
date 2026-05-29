@@ -293,7 +293,7 @@ const styles = StyleSheet.create({
   },
   sectionContent: {
     backgroundColor: 'rgba(255,255,255,0.02)',
-    borderRadius: 16,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: 'rgba(216,170,77,0.1)',
     overflow: 'hidden',

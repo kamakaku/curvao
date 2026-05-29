@@ -245,7 +245,7 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: 'rgba(18,22,20,0.9)',
     borderColor: 'rgba(216,170,77,0.28)',
-    borderRadius: 22,
+    borderRadius: 8,
     borderWidth: 1,
     minHeight: 198,
     maxHeight: 230,
@@ -376,7 +376,7 @@ const styles = StyleSheet.create({
   tile: {
     backgroundColor: 'rgba(8,22,14,0.94)',
     borderColor: 'rgba(34,200,120,0.24)',
-    borderRadius: 22,
+    borderRadius: 8,
     borderWidth: 1,
     flex: 1,
     minHeight: 80,

@@ -88,7 +88,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     height: 80,
-    borderRadius: 10,
+    borderRadius: 8,
     borderWidth: 1,
     overflow: 'hidden',
     position: 'relative',

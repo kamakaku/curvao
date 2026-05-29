@@ -241,7 +241,7 @@ function getMethodLabel(method: string) {
 
 const styles = StyleSheet.create({
   heroCard: {
-    borderRadius: 22,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: 'rgba(216,170,77,0.24)',
     backgroundColor: 'rgba(18,22,20,0.86)',
@@ -260,7 +260,7 @@ const styles = StyleSheet.create({
   },
   searchBox: {
     height: 54,
-    borderRadius: 16,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: 'rgba(216,170,77,0.22)',
     backgroundColor: 'rgba(18,22,20,0.86)',
@@ -298,7 +298,7 @@ const styles = StyleSheet.create({
   crestPlaceholder: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: 'rgba(216,170,77,0.35)',
     alignItems: 'center',

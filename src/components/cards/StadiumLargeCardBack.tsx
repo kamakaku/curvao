@@ -193,7 +193,7 @@ const styles = StyleSheet.create({
 
     height: CARD_HEIGHT,
 
-    borderRadius: 22,
+    borderRadius: 8,
 
     overflow: 'hidden',
 
@@ -365,7 +365,7 @@ const styles = StyleSheet.create({
 
     height: 20,
 
-    borderRadius: 10,
+    borderRadius: 8,
 
     borderWidth: 1,
 

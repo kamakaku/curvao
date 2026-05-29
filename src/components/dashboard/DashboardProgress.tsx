@@ -52,7 +52,7 @@ const styles = StyleSheet.create({
   },
   container: {
     backgroundColor: 'rgba(12, 13, 14, 0.50)',
-    borderRadius: 20,
+    borderRadius: 8,
     padding: curvao.spacing.lg,
     borderWidth: 1,
     borderColor: 'rgba(118, 92, 54, 0.25)',

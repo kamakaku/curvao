@@ -110,7 +110,7 @@ const styles = StyleSheet.create({
   },
   menuContent: {
     backgroundColor: CURVAO_DESIGN.surface,
-    borderRadius: 22,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: CURVAO_DESIGN.borderGold,
     overflow: 'hidden',

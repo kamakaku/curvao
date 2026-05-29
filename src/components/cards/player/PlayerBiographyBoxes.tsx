@@ -95,7 +95,7 @@ const styles = StyleSheet.create({
     backgroundColor: BOX_COLORS.surface,
     borderColor: BOX_COLORS.border,
     borderWidth: 1,
-    borderRadius: 20,
+    borderRadius: 8,
     padding: 16,
     width: '48%',
     flexGrow: 1,
@@ -106,7 +106,7 @@ const styles = StyleSheet.create({
   iconCircle: {
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: 8,
     backgroundColor: 'rgba(216,170,77,0.08)',
     borderColor: 'rgba(216,170,77,0.2)',
     borderWidth: 1,

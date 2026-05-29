@@ -417,7 +417,12 @@ export function PlayerStandardCard({
                   style={[styles.position, { color: accent.green, fontSize: scale.position }]}>
                   {formatPosition(player.position)}
                 </Text>
-                <Text style={[styles.shirt, { color: accent.gold, fontSize: scale.shirt }]}>
+                <Text
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.5}
+                  numberOfLines={1}
+                  style={[styles.shirt, { color: accent.gold, fontSize: scale.shirt }]}
+                >
                   {player.shirtNumber ?? '-'}
                 </Text>
               </View>
@@ -452,7 +457,12 @@ export function PlayerStandardCard({
             ) : null}
 
             <View style={[styles.nameBlock, isSmall && styles.nameBlockSmall]}>
-              <Text style={[styles.firstName, { color: accent.green, fontSize: scale.firstName }]} numberOfLines={1}>
+              <Text
+                adjustsFontSizeToFit
+                minimumFontScale={0.6}
+                numberOfLines={1}
+                style={[styles.firstName, { color: accent.green, fontSize: scale.firstName }]}
+              >
                 {player.firstName.toUpperCase()}
               </Text>
               <Text
@@ -471,7 +481,12 @@ export function PlayerStandardCard({
                 {player.lastName.toUpperCase()}
               </Text>
               <Ionicons name="star" size={scale.starBig} color={accent.gold} style={styles.nameStar} />
-              <Text style={[styles.clubName, { color: accent.green, fontSize: scale.club }]} numberOfLines={1}>
+              <Text
+                adjustsFontSizeToFit
+                minimumFontScale={0.65}
+                numberOfLines={1}
+                style={[styles.clubName, { color: accent.green, fontSize: scale.club }]}
+              >
                 {club.name.toUpperCase()}
               </Text>
             </View>
@@ -655,7 +670,7 @@ const styles = StyleSheet.create({
   card: {
     aspectRatio: 987 / 1414.5,
     backgroundColor: 'transparent',
-    borderRadius: 10,
+    borderRadius: 8,
     overflow: 'visible',
     position: 'relative',
     width: '100%',
@@ -666,7 +681,7 @@ const styles = StyleSheet.create({
   flipFace: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'transparent',
-    borderRadius: 10,
+    borderRadius: 8,
     overflow: 'visible',
   },
   flipBackFace: {
@@ -675,7 +690,7 @@ const styles = StyleSheet.create({
   cardClippedContent: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'transparent',
-    borderRadius: 10,
+    borderRadius: 8,
     overflow: 'hidden',
   },
   frameOverlay: {

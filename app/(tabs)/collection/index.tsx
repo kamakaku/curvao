@@ -405,7 +405,7 @@ const styles = StyleSheet.create({
   setCard: {
     backgroundColor: 'rgba(18,22,20,0.9)',
     borderColor: 'rgba(216,170,77,0.20)',
-    borderRadius: 20,
+    borderRadius: 8,
     borderWidth: 1,
     gap: curvao.spacing.md,
     padding: curvao.spacing.lg,

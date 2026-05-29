@@ -45,12 +45,6 @@ export function PlayerConnectionStats({ card }: { card: UserCard }) {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>DEINE VERBINDUNG</Text>
-        <View style={styles.levelBadge}>
-          <Text style={styles.levelText}>LEVEL {bondLevel} FAN</Text>
-        </View>
-      </View>
 
       <View style={styles.grid}>
         <StatCard 
@@ -121,7 +115,7 @@ const styles = StyleSheet.create({
     backgroundColor: STATS_COLORS.surface,
     borderColor: STATS_COLORS.border,
     borderWidth: 1,
-    borderRadius: 20,
+    borderRadius: 8,
     padding: 16,
     width: '48%', // Rough 2x2 grid
     flexGrow: 1,
@@ -130,7 +124,7 @@ const styles = StyleSheet.create({
   iconContainer: {
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: 8,
     backgroundColor: 'rgba(216,170,77,0.08)',
     borderColor: 'rgba(216,170,77,0.2)',
     borderWidth: 1,

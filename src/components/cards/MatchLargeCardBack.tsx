@@ -172,7 +172,7 @@ const styles = StyleSheet.create({
   cardBase: {
     width: CARD_WIDTH,
     height: CARD_HEIGHT,
-    borderRadius: 22,
+    borderRadius: 8,
     overflow: 'hidden',
     position: 'relative',
     backgroundColor: '#080A09',
@@ -258,7 +258,7 @@ const styles = StyleSheet.create({
   iconCircle: {
     width: 20,
     height: 20,
-    borderRadius: 10,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: 'rgba(216,170,77,0.2)',
     justifyContent: 'center',

@@ -73,7 +73,7 @@ function SummaryRow({ label, value }: { label: string; value: string }) {
 
 const styles = StyleSheet.create({
   summaryCard: {
-    borderRadius: 22,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: 'rgba(216,170,77,0.26)',
     backgroundColor: 'rgba(18,22,20,0.88)',

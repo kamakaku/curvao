@@ -538,7 +538,7 @@ const styles = StyleSheet.create({
   timeline: {
     backgroundColor: 'rgba(18,22,20,0.82)',
     borderColor: 'rgba(216,170,77,0.16)',
-    borderRadius: 16,
+    borderRadius: 8,
     borderWidth: 1,
     padding: 16,
   },
@@ -549,7 +549,7 @@ const styles = StyleSheet.create({
   },
   goalRow: {
     backgroundColor: 'rgba(216,170,77,0.06)',
-    borderRadius: 12,
+    borderRadius: 8,
     marginHorizontal: -6,
     paddingHorizontal: 6,
     paddingTop: 2,

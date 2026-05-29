@@ -255,7 +255,7 @@ const styles = StyleSheet.create({
   back: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'transparent',
-    borderRadius: 10,
+    borderRadius: 8,
     overflow: 'visible',
   },
   backContent: {

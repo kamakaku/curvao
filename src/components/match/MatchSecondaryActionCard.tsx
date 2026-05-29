@@ -121,7 +121,7 @@ const styles = StyleSheet.create({
   button: {
     alignItems: 'center',
     borderColor: 'rgba(216,170,77,0.30)',
-    borderRadius: 12,
+    borderRadius: 8,
     borderWidth: 1,
     justifyContent: 'center',
     marginTop: 8,
@@ -142,7 +142,7 @@ const styles = StyleSheet.create({
   tile: {
     backgroundColor: 'rgba(29,22,8,0.72)',
     borderColor: 'rgba(216,170,77,0.24)',
-    borderRadius: 10,
+    borderRadius: 8,
     borderWidth: 1,
     flex: 1,
     height: 80,

@@ -82,7 +82,7 @@ const styles = StyleSheet.create({
   tile: {
     backgroundColor: '#121614',
     borderColor: 'rgba(216,170,77,0.20)',
-    borderRadius: 20,
+    borderRadius: 8,
     borderWidth: 1,
     flexDirection: 'row',
     gap: curvao.spacing.md,

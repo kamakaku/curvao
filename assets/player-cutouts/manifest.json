@@ -1,0 +1,112 @@
+{
+  "entries": [
+    {
+      "playerSlug": "licensed-sample",
+      "displayName": "Licensed Sample",
+      "hero": "licensed/licensed_sample_hero.png",
+      "thumb": "licensed/licensed_sample_thumb.png",
+      "source": "licensed_provider",
+      "licenseStatus": "licensed",
+      "usageScope": "card_asset",
+      "approvedFor": ["production", "internal_demo", "dev"],
+      "expiresAt": null,
+      "credit": "Local placeholder-backed sample entry"
+    },
+    {
+      "playerSlug": "demo-sample",
+      "displayName": "Demo Sample",
+      "hero": "demo/demo_sample_hero.png",
+      "thumb": "demo/demo_sample_thumb.png",
+      "source": "local_demo",
+      "licenseStatus": "demo_only",
+      "usageScope": "internal_demo",
+      "approvedFor": ["internal_demo", "dev"],
+      "expiresAt": null,
+      "credit": "Local placeholder-backed demo entry"
+    },
+    {
+      "playerSlug": "expired-sample",
+      "displayName": "Expired Sample",
+      "hero": "licensed/expired_sample_hero.png",
+      "thumb": "licensed/expired_sample_thumb.png",
+      "source": "licensed_provider",
+      "licenseStatus": "licensed",
+      "usageScope": "card_asset",
+      "approvedFor": ["production", "internal_demo", "dev"],
+      "expiresAt": "2024-01-01T00:00:00.000Z",
+      "credit": "Expired sample entry"
+    },
+    {
+      "playerSlug": "unlicensed-sample",
+      "displayName": "Unlicensed Sample",
+      "hero": "demo/unlicensed_sample_hero.png",
+      "thumb": "demo/unlicensed_sample_thumb.png",
+      "source": "local_demo",
+      "licenseStatus": "unlicensed",
+      "usageScope": "internal_demo",
+      "approvedFor": ["internal_demo", "dev"],
+      "expiresAt": null,
+      "credit": "Must never be used"
+    },
+    {
+      "playerSlug": "placeholder-generic",
+      "displayName": "Generic Placeholder",
+      "hero": "placeholders/generic_player_placeholder.png",
+      "thumb": "placeholders/generic_player_placeholder_thumb.png",
+      "source": "curvao_placeholder",
+      "licenseStatus": "licensed",
+      "usageScope": "app_display",
+      "approvedFor": ["production", "internal_demo", "dev", "marketing"],
+      "expiresAt": null,
+      "credit": "CURVAO placeholder"
+    },
+    {
+      "playerSlug": "placeholder-forward",
+      "displayName": "Forward Placeholder",
+      "hero": "placeholders/forward_player_placeholder.png",
+      "thumb": "placeholders/forward_player_placeholder_thumb.png",
+      "source": "curvao_placeholder",
+      "licenseStatus": "licensed",
+      "usageScope": "app_display",
+      "approvedFor": ["production", "internal_demo", "dev", "marketing"],
+      "expiresAt": null,
+      "credit": "CURVAO forward placeholder"
+    },
+    {
+      "playerSlug": "placeholder-midfielder",
+      "displayName": "Midfielder Placeholder",
+      "hero": "placeholders/midfielder_player_placeholder.png",
+      "thumb": "placeholders/midfielder_player_placeholder_thumb.png",
+      "source": "curvao_placeholder",
+      "licenseStatus": "licensed",
+      "usageScope": "app_display",
+      "approvedFor": ["production", "internal_demo", "dev", "marketing"],
+      "expiresAt": null,
+      "credit": "CURVAO midfielder placeholder"
+    },
+    {
+      "playerSlug": "placeholder-defender",
+      "displayName": "Defender Placeholder",
+      "hero": "placeholders/defender_player_placeholder.png",
+      "thumb": "placeholders/defender_player_placeholder_thumb.png",
+      "source": "curvao_placeholder",
+      "licenseStatus": "licensed",
+      "usageScope": "app_display",
+      "approvedFor": ["production", "internal_demo", "dev", "marketing"],
+      "expiresAt": null,
+      "credit": "CURVAO defender placeholder"
+    },
+    {
+      "playerSlug": "placeholder-goalkeeper",
+      "displayName": "Goalkeeper Placeholder",
+      "hero": "placeholders/goalkeeper_player_placeholder.png",
+      "thumb": "placeholders/goalkeeper_player_placeholder_thumb.png",
+      "source": "curvao_placeholder",
+      "licenseStatus": "licensed",
+      "usageScope": "app_display",
+      "approvedFor": ["production", "internal_demo", "dev", "marketing"],
+      "expiresAt": null,
+      "credit": "CURVAO goalkeeper placeholder"
+    }
+  ]
+}

@@ -41,3 +41,9 @@ app-example
 # generated native folders
 /ios
 /android
+
+# Player cutouts: keep structure, ignore local binary drops by default
+assets/player-cutouts/licensed/*
+!assets/player-cutouts/licensed/.gitkeep
+assets/player-cutouts/demo/*
+!assets/player-cutouts/demo/.gitkeep

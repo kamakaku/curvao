@@ -323,7 +323,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#121614',
     borderColor: 'rgba(216,170,77,0.18)',
-    borderRadius: 20,
+    borderRadius: 8,
     borderWidth: 1,
     gap: curvao.spacing.sm,
     justifyContent: 'center',

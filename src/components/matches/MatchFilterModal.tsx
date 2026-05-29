@@ -202,7 +202,7 @@ const styles = StyleSheet.create({
   section: {
     backgroundColor: '#191E1B',
     borderColor: 'rgba(255,255,255,0.08)',
-    borderRadius: 16,
+    borderRadius: 8,
     borderWidth: 1,
     gap: 12,
     padding: 14,

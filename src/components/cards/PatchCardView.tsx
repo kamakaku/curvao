@@ -33,7 +33,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     aspectRatio: 1,
     backgroundColor: '#0b110e',
-    borderRadius: 16,
+    borderRadius: 8,
     borderWidth: 2,
     justifyContent: 'center',
     transform: [{ rotate: '45deg' }],

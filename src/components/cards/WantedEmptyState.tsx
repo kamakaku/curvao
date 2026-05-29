@@ -19,7 +19,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#101512',
     borderColor: 'rgba(216,170,77,0.14)',
-    borderRadius: 20,
+    borderRadius: 8,
     borderWidth: 1,
     gap: curvao.spacing.md,
     padding: curvao.spacing.xl,

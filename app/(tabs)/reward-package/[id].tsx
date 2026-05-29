@@ -284,7 +284,7 @@ const styles = StyleSheet.create({
   },
   packageGlow: {
     backgroundColor: 'rgba(216,170,77,0.18)',
-    borderRadius: 120,
+    borderRadius: 80,
     height: 240,
     position: 'absolute',
     top: 18,
@@ -349,7 +349,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: 'rgba(18,22,20,0.84)',
     borderColor: 'rgba(216,170,77,0.18)',
-    borderRadius: 16,
+    borderRadius: 8,
     borderWidth: 1,
     flexDirection: 'row',
     gap: 12,

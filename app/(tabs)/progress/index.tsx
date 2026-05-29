@@ -324,7 +324,7 @@ const styles = StyleSheet.create({
     backgroundColor: CURVAO_DESIGN.surface,
     borderWidth: 1,
     borderColor: CURVAO_DESIGN.borderGold,
-    borderRadius: 20,
+    borderRadius: 8,
     padding: 20,
   },
   metricHeader: {

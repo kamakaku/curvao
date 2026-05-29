@@ -1,7 +1,7 @@
 import { PlayerCardPreview } from '@/src/components/cards/PlayerCardPreview';
 import { PlayerHeroDetail } from '@/src/components/cards/player/PlayerHeroDetail';
 import { PlayerStandardCard } from '@/src/components/cards/PlayerStandardCard';
-import { getClubCrestSource, getPlayerImageSourceFromRecord } from '@/src/services/cardAssetService';
+import { getClubCrestSource, getPlayerCardImageSource } from '@/src/services/cardAssetService';
 import { getCardRelations } from '@/src/services/cardTemplateService';
 import { getPocketBaseFileUrl } from '@/src/services/pocketbase';
 import type { UserCard } from '@/src/types/models';
@@ -40,9 +40,29 @@ export function PlayerCardView({ card, compact, size, isFlipped }: PlayerCardVie
       <PlayerCardPreview 
         card={card} 
         player={displayPlayer} 
-        club={displayClub} 
+        club={displayClub}
+        size="compact"
       />
     );
+  }
+
+  if (resolvedSize === 'large') {
+    const displayPlayer = player || {
+      id: 'unknown',
+      lastName: fallbackLastName || fallbackFirstName,
+      displayName: card.title,
+      position: 'PLAYER',
+      active: true,
+      club: 'unknown',
+    };
+
+    const displayClub = playerClub || {
+      id: 'unknown',
+      name: card.subtitle || 'Curvao Club',
+      shortName: 'CVO',
+    };
+
+    return <PlayerCardPreview card={card} player={displayPlayer} club={displayClub} size="large" />;
   }
 
   const commonProps = {
@@ -53,7 +73,7 @@ export function PlayerCardView({ card, compact, size, isFlipped }: PlayerCardVie
       position: player?.position ?? 'PLAYER',
       shirtNumber: player?.shirtNumber,
       nationality: player?.nationality,
-      imageSource: getPlayerImageSourceFromRecord(player),
+      imageSource: getPlayerCardImageSource(player),
     },
     club: {
       name: playerClub?.name ?? card.subtitle ?? 'Curvao Club',
@@ -88,10 +108,6 @@ export function PlayerCardView({ card, compact, size, isFlipped }: PlayerCardVie
   };
 
   if (resolvedSize === 'hero') {
-    return <PlayerHeroDetail card={card} />;
-  }
-  
-  if (resolvedSize === 'large') {
     return <PlayerHeroDetail card={card} />;
   }
 

@@ -180,13 +180,13 @@ const styles = StyleSheet.create({
   backWrapper: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: '#06100c',
-    borderRadius: 20,
+    borderRadius: 8,
     overflow: 'hidden',
   },
   cardBase: {
     width: CARD_WIDTH,
     height: CARD_HEIGHT,
-    borderRadius: 22,
+    borderRadius: 8,
     overflow: 'hidden',
     position: 'relative',
     backgroundColor: '#080A09',

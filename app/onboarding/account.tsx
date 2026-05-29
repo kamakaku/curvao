@@ -147,7 +147,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(184,87,77,0.1)',
     borderWidth: 1,
     borderColor: 'rgba(184,87,77,0.3)',
-    borderRadius: 10,
+    borderRadius: 8,
     padding: 12,
   },
   errorText: {

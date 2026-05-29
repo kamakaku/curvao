@@ -162,7 +162,7 @@ const styles = StyleSheet.create({
   wrapper: {
     backgroundColor: 'rgba(18,22,20,0.85)',
     borderColor: 'rgba(216,170,77,0.24)',
-    borderRadius: 22,
+    borderRadius: 8,
     borderWidth: 1,
     elevation: 8,
     overflow: 'hidden',
@@ -257,7 +257,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: 'rgba(7,9,8,0.76)',
     borderColor: 'rgba(216,170,77,0.24)',
-    borderRadius: 16,
+    borderRadius: 8,
     borderWidth: 1,
     flex: 1,
     flexDirection: 'row',

@@ -31,7 +31,7 @@ const styles = StyleSheet.create({
   card: {
     aspectRatio: 987 / 1414.5,
     backgroundColor: 'transparent',
-    borderRadius: 10,
+    borderRadius: 8,
     overflow: 'visible',
     position: 'relative',
     width: '100%',

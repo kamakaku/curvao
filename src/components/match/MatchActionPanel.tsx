@@ -81,7 +81,7 @@ const styles = StyleSheet.create({
   panel: {
     backgroundColor: 'rgba(18,22,20,0.88)',
     borderColor: 'rgba(216,170,77,0.22)',
-    borderRadius: 22,
+    borderRadius: 8,
     borderWidth: 1,
     gap: 16,
     overflow: 'hidden',
@@ -156,7 +156,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: 'rgba(216,170,77,0.08)',
     borderColor: 'rgba(216,170,77,0.20)',
-    borderRadius: 16,
+    borderRadius: 8,
     borderWidth: 1,
     height: 52,
     justifyContent: 'center',

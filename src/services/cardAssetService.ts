@@ -1,35 +1,29 @@
 import { getPocketBaseFileUrl } from '@/src/services/pocketbase';
+import { getPlayerCutoutSource } from '@/src/services/playerCutoutService';
 import type { Club, Player } from '@/src/types/models';
 import type { ImageSourcePropType } from 'react-native';
-
-const playerImageSources: Record<string, ImageSourcePropType> = {
-  playerreese0001: require('@/assets/cards/fabian_reese_cutout_v2.png'),
-};
 
 const clubCrestSources: Record<string, ImageSourcePropType> = {
   clubhertha00001: require('@/assets/cards/hertha_crest.png'),
 };
 
-const playerPlaceholder = require('@/assets/cards/player_placholder.png');
 const curvaoCrestFallback = require('@/assets/logo_crest.png');
 
 export function getPlayerImageSource(playerId?: string) {
-  return (playerId ? playerImageSources[playerId] : undefined) ?? playerPlaceholder;
+  return getPlayerCutoutSource({ playerId, variant: 'hero' });
 }
 
-export function getPlayerImageSourceFromRecord(player?: string | Player) {
+export function getPlayerCardImageSource(player?: string | Player) {
   if (player && typeof player === 'object') {
-    if (player.avatar) {
-      const avatarUrl = getPocketBaseFileUrl(player as any, player.avatar);
-      if (avatarUrl) {
-        return { uri: avatarUrl };
-      }
-    }
-
-    return playerImageSources[player.id] ?? playerPlaceholder;
+    return getPlayerCutoutSource({
+      playerId: player.id,
+      displayName: player.displayName,
+      position: player.position,
+      variant: 'hero',
+    });
   }
 
-  return (player ? playerImageSources[player] : undefined) ?? playerPlaceholder;
+  return getPlayerCutoutSource({ playerId: player, variant: 'hero' });
 }
 
 export function getClubCrestSource(club?: string | Club) {

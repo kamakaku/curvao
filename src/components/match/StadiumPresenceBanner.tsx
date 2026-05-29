@@ -72,7 +72,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
   },
   containerCompact: {
-    borderRadius: 16,
+    borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 12,
   },

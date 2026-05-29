@@ -129,7 +129,7 @@ const styles = StyleSheet.create({
     gap: curvao.spacing.md,
   },
   artifactCard: {
-    borderRadius: 20,
+    borderRadius: 8,
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: ARTIFACT_COLORS.borderGold,
@@ -274,7 +274,7 @@ const styles = StyleSheet.create({
   actionButton: {
     flex: 1,
     padding: curvao.spacing.md,
-    borderRadius: 16,
+    borderRadius: 8,
     flexDirection: 'row',
     gap: 10,
     alignItems: 'center',
@@ -299,7 +299,7 @@ const styles = StyleSheet.create({
   actionIconContainer: {
     width: 40,
     height: 40,
-    borderRadius: 10,
+    borderRadius: 8,
     backgroundColor: 'rgba(255,255,255,0.06)',
     justifyContent: 'center',
     alignItems: 'center',

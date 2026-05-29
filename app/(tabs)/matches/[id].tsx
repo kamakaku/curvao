@@ -209,7 +209,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   actionTile: {
-    borderRadius: 22,
+    borderRadius: 8,
     borderWidth: 1,
     flex: 1,
     minHeight: 80,

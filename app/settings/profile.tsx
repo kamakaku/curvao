@@ -172,7 +172,7 @@ const styles = StyleSheet.create({
     backgroundColor: curvao.colors.gold,
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 3,

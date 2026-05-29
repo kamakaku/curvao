@@ -164,7 +164,7 @@ const styles = StyleSheet.create({
   panel: {
     backgroundColor: 'rgba(18,22,20,0.88)',
     borderColor: 'rgba(216,170,77,0.22)',
-    borderRadius: 22,
+    borderRadius: 8,
     borderWidth: 1,
     gap: 14,
     overflow: 'hidden',

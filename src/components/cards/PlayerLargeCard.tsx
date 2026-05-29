@@ -1,5 +1,4 @@
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient as ExpoLinearGradient } from 'expo-linear-gradient';
 import React, { useState } from 'react';
 import { Pressable, StyleSheet, Text, View, type ImageSourcePropType } from 'react-native';
 import { Image } from 'expo-image';
@@ -9,7 +8,6 @@ import resolveAssetSource from 'react-native/Libraries/Image/resolveAssetSource'
 import { PlayerLargeCardBack } from '@/src/components/cards/PlayerLargeCardBack';
 import { TextureOverlay } from '@/src/components/ui/TextureOverlay';
 import { formatRarity, getInitials } from '@/src/services/cardTemplateService';
-import { curvao as theme } from '@/src/theme/curvaoTheme';
 import type { CardOrigin, Rarity } from '@/src/types/models';
 
 const cardBaseBlank = require('@/assets/cards/player_card_base_blank.png');
@@ -170,8 +168,12 @@ function PlayerLargeCardFront({ player, club, card }: PlayerLargeCardProps) {
 
         {/* Left Info Rail */}
         <View style={styles.leftRail}>
-          <Text style={styles.shirtNumber}>{player.shirtNumber ?? '-'}</Text>
-          <Text style={styles.positionLabel}>{player.position.toUpperCase()}</Text>
+          <Text adjustsFontSizeToFit minimumFontScale={0.5} numberOfLines={1} style={styles.shirtNumber}>
+            {player.shirtNumber ?? '-'}
+          </Text>
+          <Text adjustsFontSizeToFit minimumFontScale={0.6} numberOfLines={1} style={styles.positionLabel}>
+            {player.position.toUpperCase()}
+          </Text>
           <View style={styles.railDivider} />
           <View style={styles.crestContainer}>
             {clubCrest ? (
@@ -180,7 +182,9 @@ function PlayerLargeCardFront({ player, club, card }: PlayerLargeCardProps) {
               <Text style={styles.clubInitial}>{club.shortName ?? getInitials(club.name)}</Text>
             )}
           </View>
-          <Text style={styles.clubShortName}>{club.shortName ?? club.name.substring(0, 3).toUpperCase()}</Text>
+          <Text adjustsFontSizeToFit minimumFontScale={0.6} numberOfLines={1} style={styles.clubShortName}>
+            {club.shortName ?? club.name.substring(0, 3).toUpperCase()}
+          </Text>
         </View>
 
         {/* Name Block */}
@@ -291,13 +295,13 @@ const styles = StyleSheet.create({
   backWrapper: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: '#06100c',
-    borderRadius: 20,
+    borderRadius: 8,
     overflow: 'hidden',
   },
   cardBase: {
     width: CARD_WIDTH,
     height: CARD_HEIGHT,
-    borderRadius: 22,
+    borderRadius: 8,
     overflow: 'hidden',
     position: 'relative',
     backgroundColor: '#080A09',
@@ -454,7 +458,7 @@ const styles = StyleSheet.create({
   iconCircle: {
     width: 24,
     height: 24,
-    borderRadius: 12,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: 'rgba(216,170,77,0.3)',
     justifyContent: 'center',

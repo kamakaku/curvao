@@ -61,7 +61,7 @@ const styles = StyleSheet.create({
   },
   documentBox: {
     backgroundColor: 'rgba(255,255,255,0.02)',
-    borderRadius: 16,
+    borderRadius: 8,
     padding: 24,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.05)',
