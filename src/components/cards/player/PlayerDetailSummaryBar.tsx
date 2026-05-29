@@ -24,38 +24,30 @@ export function PlayerDetailSummaryBar({ metrics }: { metrics: SummaryMetric[] }
   if (singleMetric) {
     return (
       <View style={[styles.card, styles.singleCard]}>
-        <View style={styles.singleLeft}>
-          <Text style={styles.label}>{singleMetric.label}</Text>
-          <Text
-            adjustsFontSizeToFit
-            minimumFontScale={0.7}
-            numberOfLines={1}
-            style={[
-              styles.singleValue,
-              singleMetric.tone === 'gold' && styles.valueGold,
-              singleMetric.tone === 'mint' && styles.valueMint,
-            ]}
-          >
-            {singleMetric.value}
-          </Text>
+        <View style={styles.singleTopRow}>
+          <View style={styles.singleTitleContainer}>
+            <Text style={styles.label}>{singleMetric.label}</Text>
+            <Text
+              style={[
+                styles.singleValueCompact,
+                singleMetric.tone === 'gold' && styles.valueGold,
+                singleMetric.tone === 'mint' && styles.valueMint,
+              ]}
+            >
+              {singleMetric.value}
+            </Text>
+          </View>
           <Text numberOfLines={1} style={styles.singleSub}>
             {singleMetric.sub ?? '—'}
           </Text>
         </View>
-        <View style={styles.singleRight}>
-          <View style={styles.progressTrack}>
-            <View
-              style={[
-                styles.progressFill,
-                { width: `${Math.max(0, Math.min(100, (singleMetric.progress ?? 0) * 100))}%` },
-              ]}
-            />
-          </View>
-          <Text style={styles.singleProgressLabel}>
-            {singleMetric.progress !== undefined
-              ? `${Math.round(Math.max(0, Math.min(100, singleMetric.progress * 100)))}% bis nächstes Level`
-              : '—'}
-          </Text>
+        <View style={styles.progressTrack}>
+          <View
+            style={[
+              styles.progressFill,
+              { width: `${Math.max(0, Math.min(100, (singleMetric.progress ?? 0) * 100))}%` },
+            ]}
+          />
         </View>
       </View>
     );
@@ -112,9 +104,24 @@ const styles = StyleSheet.create({
     elevation: 12,
   },
   singleCard: {
+    flexDirection: 'column',
+    justifyContent: 'center',
+    minHeight: 74,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    gap: 12,
+    marginBottom: 12,
+  },
+  singleTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    minHeight: 112,
-    paddingHorizontal: 14,
+    width: '100%',
+  },
+  singleTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   column: {
     alignItems: 'flex-start',
@@ -128,18 +135,6 @@ const styles = StyleSheet.create({
     borderRightColor: 'rgba(255,255,255,0.08)',
     borderRightWidth: 1,
   },
-  singleLeft: {
-    flex: 1,
-    gap: 8,
-    justifyContent: 'center',
-    paddingRight: 18,
-  },
-  singleRight: {
-    flex: 1,
-    gap: 8,
-    justifyContent: 'center',
-    maxWidth: 176,
-  },
   label: {
     color: COLORS.gold,
     fontSize: 11,
@@ -152,9 +147,9 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: '900',
   },
-  singleValue: {
+  singleValueCompact: {
     color: COLORS.text,
-    fontSize: 32,
+    fontSize: 14,
     fontWeight: '900',
   },
   valueGold: {
@@ -186,11 +181,5 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.fill,
     borderRadius: 999,
     height: '100%',
-  },
-  singleProgressLabel: {
-    color: COLORS.muted,
-    fontSize: 11,
-    fontWeight: '800',
-    textAlign: 'right',
   },
 });

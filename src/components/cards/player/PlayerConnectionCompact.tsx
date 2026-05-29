@@ -18,29 +18,14 @@ type Item = {
 };
 
 export function PlayerConnectionCompact({
-  title,
-  ctaLabel,
   items,
   onPress,
 }: {
-  title: string;
-  ctaLabel?: string;
   items: Item[];
   onPress?: () => void;
 }) {
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>{title}</Text>
-        {ctaLabel ? (
-          <Pressable onPress={onPress} style={styles.cta}>
-            <Ionicons color={COLORS.gold} name="shield-checkmark-outline" size={14} />
-            <Text style={styles.ctaLabel}>{ctaLabel}</Text>
-            <Ionicons color={COLORS.gold} name="chevron-forward" size={14} />
-          </Pressable>
-        ) : null}
-      </View>
-
       <View style={styles.grid}>
         {items.map((item) => (
           <View key={item.label} style={styles.item}>
@@ -72,33 +57,7 @@ export function PlayerConnectionCompact({
 const styles = StyleSheet.create({
   container: {
     gap: 12,
-    marginTop: 18,
     paddingHorizontal: 20,
-  },
-  header: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  title: {
-    color: COLORS.gold,
-    fontSize: 14,
-    fontWeight: '900',
-    letterSpacing: 2,
-    textTransform: 'uppercase',
-  },
-  cta: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 6,
-    minHeight: 28,
-    justifyContent: 'center',
-  },
-  ctaLabel: {
-    color: COLORS.gold,
-    fontSize: 11,
-    fontWeight: '900',
-    letterSpacing: 0.8,
   },
   grid: {
     flexDirection: 'row',

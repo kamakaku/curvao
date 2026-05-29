@@ -38,6 +38,17 @@ export async function getUserCards(userId: string): Promise<UserCard[]> {
   );
 }
 
+export async function getCardEvents(cardId: string): Promise<CardEvent[]> {
+  return await tryPocketBase(
+    async () =>
+      pb.collection('card_events').getFullList<CardEvent>({
+        filter: `card = "${cardId}"`,
+        sort: '-createdAt',
+      }),
+    () => [],
+  );
+}
+
 export async function getLatestCards(userId: string, count = 4): Promise<UserCard[]> {
   const cards = await getUserCards(userId);
   return cards.slice(0, count);

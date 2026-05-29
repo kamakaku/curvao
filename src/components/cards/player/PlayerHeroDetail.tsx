@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CardMoreMenu } from '@/src/components/cards/CardMoreMenu';
 import { PlayerCardDetailsAccordion } from '@/src/components/cards/player/PlayerCardDetailsAccordion';
+import { PlayerCardHistoryAccordion } from '@/src/components/cards/player/PlayerCardHistoryAccordion';
 import { PlayerConnectionCompact } from '@/src/components/cards/player/PlayerConnectionCompact';
 import { PlayerDetailSummaryBar } from '@/src/components/cards/player/PlayerDetailSummaryBar';
 import { PlayerHighlightMomentCompact } from '@/src/components/cards/player/PlayerHighlightMomentCompact';
@@ -298,8 +299,6 @@ export function PlayerHeroDetail({ card }: PlayerHeroDetailProps) {
         </View>
 
         <View style={styles.lowerContent}>
-          <PlayerDetailSummaryBar metrics={summaryMetrics} />
-
           <View style={styles.cardControlRowCompact}>
             <View style={styles.cardControlStatusList}>
               {statusChips.map((chip) => (
@@ -341,18 +340,17 @@ export function PlayerHeroDetail({ card }: PlayerHeroDetailProps) {
               <Ionicons name="ellipsis-horizontal" color="#FFF" size={22} />
             </Pressable>
           </View>
-
+          
           {actionError ? <Text style={styles.actionError}>{actionError}</Text> : null}
 
-          <PlayerConnectionCompact
-            ctaLabel={`LEVEL ${bondProgress.level} FAN >`}
-            items={connectionItems}
-            title="DEINE VERBINDUNG"
-          />
+          <PlayerDetailSummaryBar metrics={summaryMetrics} />
+
+          <PlayerConnectionCompact items={connectionItems} />
 
           <PlayerHighlightMomentCompact />
 
           <PlayerCardDetailsAccordion rows={detailRows} />
+          <PlayerCardHistoryAccordion cardId={currentCard.id} />
         </View>
       </ScrollView>
 
