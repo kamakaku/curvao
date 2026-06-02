@@ -1,15 +1,17 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View, Modal, FlatList } from 'react-native';
 
 import { AuthButton } from '@/src/components/auth/AuthButton';
 import { AuthTextInput } from '@/src/components/auth/AuthTextInput';
 import { CurvaoScreen } from '@/src/components/CurvaoScreen';
 import { useAuth } from '@/src/providers/AuthProvider';
 import { updateUserProfile } from '@/src/services/authService';
+import { getClubs } from '@/src/services/matchService';
 import { mapAuthError } from '@/src/utils/authErrors';
 import { curvao } from '@/src/theme/curvaoTheme';
+import type { Club } from '@/src/types/models';
 
 export default function ProfileSettingsScreen() {
   const router = useRouter();
@@ -17,9 +19,18 @@ export default function ProfileSettingsScreen() {
   
   const [name, setName] = useState(user?.name || '');
   const [username, setUsername] = useState(user?.username || '');
+  const [favoriteClubId, setFavoriteClubId] = useState(user?.favoriteClubId || '');
+  const [clubs, setClubs] = useState<Club[]>([]);
+  const [isClubModalVisible, setIsClubModalVisible] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+
+  useEffect(() => {
+    getClubs().then(setClubs).catch(console.warn);
+  }, []);
+
+  const selectedClub = clubs.find(c => c.id === favoriteClubId);
 
   const handleSave = async () => {
     setLoading(true);
@@ -30,7 +41,8 @@ export default function ProfileSettingsScreen() {
       await updateUserProfile({
         name: name.trim(),
         username: username.trim() || undefined,
-      });
+        favoriteClub: favoriteClubId || undefined,
+      } as any);
       await refreshUser();
       setSuccess(true);
     } catch (err) {
@@ -38,6 +50,11 @@ export default function ProfileSettingsScreen() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const selectClub = (id: string) => {
+    setFavoriteClubId(id);
+    setIsClubModalVisible(false);
   };
 
   return (
@@ -54,16 +71,12 @@ export default function ProfileSettingsScreen() {
         
         <View style={styles.avatarSection}>
           <View style={styles.avatarContainer}>
-            {user?.avatar ? (
-              <Ionicons name="person" size={40} color={curvao.colors.muted} />
-            ) : (
-              <Ionicons name="person" size={40} color={curvao.colors.muted} />
-            )}
+            <Ionicons name="person" size={40} color={curvao.colors.muted} />
             <View style={styles.editBadge}>
               <Ionicons name="camera" size={14} color="#000" />
             </View>
           </View>
-          <Text style={styles.avatarHint}>AVATAR ÄNDERN (TODO)</Text>
+          <Text style={styles.avatarHint}>AVATAR ÄNDERN</Text>
         </View>
 
         <View style={styles.formContainer}>
@@ -85,14 +98,16 @@ export default function ProfileSettingsScreen() {
             textContentType="username"
           />
 
-          {/* Optional Fields placeholder */}
-          <AuthTextInput
-            label="LIEBLINGSCLUB"
-            placeholder="Noch nicht festgelegt"
-            value=""
-            onChangeText={() => {}}
-            editable={false}
-          />
+          <Pressable onPress={() => setIsClubModalVisible(true)}>
+            <View pointerEvents="none">
+              <AuthTextInput
+                label="LIEBLINGSCLUB"
+                placeholder="Club wählen…"
+                value={selectedClub?.name || ''}
+                editable={false}
+              />
+            </View>
+          </Pressable>
         </View>
 
         {error ? (
@@ -119,8 +134,42 @@ export default function ProfileSettingsScreen() {
             variant="text" 
           />
         </View>
-
       </ScrollView>
+
+      <Modal
+        visible={isClubModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setIsClubModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>LIEBLINGSCLUB WÄHLEN</Text>
+              <Pressable onPress={() => setIsClubModalVisible(false)}>
+                <Ionicons name="close" size={24} color={curvao.colors.text} />
+              </Pressable>
+            </View>
+            <FlatList
+              data={clubs}
+              keyExtractor={(item) => item.id}
+              renderItem={({ item }) => (
+                <Pressable 
+                  style={styles.clubItem} 
+                  onPress={() => selectClub(item.id)}
+                >
+                  <Text style={[styles.clubNameItem, item.id === favoriteClubId && styles.clubNameSelected]}>
+                    {item.name}
+                  </Text>
+                  {item.id === favoriteClubId && (
+                    <Ionicons name="checkmark" size={20} color={curvao.colors.gold} />
+                  )}
+                </Pressable>
+              )}
+            />
+          </View>
+        </View>
+      </Modal>
     </CurvaoScreen>
   );
 }
@@ -219,5 +268,46 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     textAlign: 'center',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.8)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#0C0D0E',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    height: '80%',
+    padding: 24,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  modalTitle: {
+    color: curvao.colors.text,
+    fontSize: 16,
+    fontWeight: '900',
+    letterSpacing: 1.5,
+  },
+  clubItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.05)',
+  },
+  clubNameItem: {
+    color: curvao.colors.text,
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  clubNameSelected: {
+    color: curvao.colors.gold,
+    fontWeight: '800',
   },
 });

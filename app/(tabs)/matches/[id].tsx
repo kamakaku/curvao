@@ -85,10 +85,12 @@ export default function MatchDetailScreen() {
     setWorking(true);
     try {
       const result = await createCheckin(userId, id, type);
-      if (result.cards[0]) {
-        setSelectedCard(result.cards[0]);
-      }
       if (type === 'stadium') setStadiumCheckedIn(true);
+      
+      if (result.rewardPackage) {
+        router.push({ pathname: '/reward-package/[id]', params: { id: result.rewardPackage.id } });
+      }
+      
       await reloadUserState();
     } catch (error) {
       Alert.alert('Check-in failed', error instanceof Error ? error.message : 'Please try again.');

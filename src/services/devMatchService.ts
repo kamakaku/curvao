@@ -3,7 +3,7 @@ import { getActiveLiveWatchSession, completeLiveWatchSession } from '@/src/servi
 import { getMatches } from '@/src/services/matchService';
 import { setLocalMatchStatusOverride } from '@/src/services/matchService';
 import { pb } from '@/src/services/pocketbase';
-import { createStadiumCheckinRewardPackage } from '@/src/services/rewardPackageService';
+import { createRewardPackage } from '@/src/services/rewardPackageService';
 
 type FinishCurrentMatchResult = {
   matchId: string;
@@ -27,8 +27,10 @@ export async function finishCurrentCheckedInLiveMatch(userId: string): Promise<F
   const rewardPackageIds: string[] = [];
 
   if (!session || session.match !== stadiumCheckin.match) {
-    const stadiumPackage = await createStadiumCheckinRewardPackage({
+    const stadiumPackage = await createRewardPackage({
       userId,
+      source: 'stadium_checkin',
+      sourceId: stadiumCheckin.id,
       matchId: stadiumCheckin.match,
     });
     rewardPackageIds.push(stadiumPackage.id);
@@ -43,8 +45,10 @@ export async function finishCurrentCheckedInLiveMatch(userId: string): Promise<F
     userId,
   });
   rewardPackageIds.push(completion.rewardPackage.id);
-  const stadiumPackage = await createStadiumCheckinRewardPackage({
+  const stadiumPackage = await createRewardPackage({
     userId,
+    source: 'stadium_checkin',
+    sourceId: stadiumCheckin.id,
     matchId: stadiumCheckin.match,
   });
   rewardPackageIds.push(stadiumPackage.id);

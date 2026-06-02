@@ -21,7 +21,7 @@ export function MatchCardView({ card, compact, size, wantedState, earnPaths }: M
     return <MatchCardPreview card={card} />;
   }
 
-  return <MatchHeroDetail card={card} wantedState={wantedState} earnPaths={earnPaths} />;
+  return <MatchHeroDetail card={card} wantedState={wantedState} />;
 }
 
 const styles = StyleSheet.create({

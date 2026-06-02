@@ -2,7 +2,7 @@ import { getMatchById } from '@/src/services/matchService';
 import { getUserCheckins, hasOtherActiveStadiumCheckin } from '@/src/services/checkinService';
 import { pb } from '@/src/services/pocketbase';
 import { hasRewardEvent } from '@/src/services/rewardEngineService';
-import { createLiveWatchRewardPackage, getRewardPackageForMatch, type RewardPackage } from '@/src/services/rewardPackageService';
+import { createRewardPackage, getRewardPackageForMatch, type RewardPackage } from '@/src/services/rewardPackageService';
 import type { LiveWatchSession, Match } from '@/src/types/models';
 
 export const LIVE_WATCH_REQUIRED_SECONDS = __DEV__ ? 60 : 30 * 60;
@@ -37,12 +37,7 @@ export async function getLiveWatchAvailability(input: {
     getMatchById(input.matchId),
     getLiveWatchSessionForMatch(input),
     getRewardPackageForMatch({ userId: input.userId, matchId: input.matchId, sourceType: 'live_watch' }).catch(() => null),
-    hasRewardEvent({
-      userId: input.userId,
-      actionType: 'live_watch',
-      sourceType: 'match',
-      sourceId: input.matchId,
-    }).catch(() => false),
+    hasRewardEvent(input.userId, 'live_watch', input.matchId).catch(() => false),
     getUserCheckins(input.userId).catch(() => []),
     getActiveLiveWatchSession(input.userId),
     hasOtherActiveStadiumCheckin(input.userId, input.matchId).catch(() => false),
@@ -247,10 +242,11 @@ export async function completeLiveWatchSession(input: {
   assertOwnSession(heartbeatSession, input.userId);
 
   if (heartbeatSession.status === 'completed' && heartbeatSession.rewardClaimed) {
-    const rewardPackage = await createLiveWatchRewardPackage({
+    const rewardPackage = await createRewardPackage({
       userId: input.userId,
       matchId: heartbeatSession.match,
-      sessionId: heartbeatSession.id,
+      source: 'live_watch',
+      sourceId: heartbeatSession.id,
     });
     return { session: heartbeatSession, rewardPackage };
   }
@@ -263,10 +259,11 @@ export async function completeLiveWatchSession(input: {
     throw new Error('Mindestdauer noch nicht erreicht.');
   }
 
-  const rewardPackage = await createLiveWatchRewardPackage({
+  const rewardPackage = await createRewardPackage({
     userId: input.userId,
     matchId: heartbeatSession.match,
-    sessionId: heartbeatSession.id,
+    source: 'live_watch',
+    sourceId: heartbeatSession.id,
   });
 
   const completedSession = await pb.collection('live_watch_sessions').update<LiveWatchSession>(heartbeatSession.id, {

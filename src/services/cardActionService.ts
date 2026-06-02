@@ -76,7 +76,7 @@ export async function upgradeCardBond(card: UserCard): Promise<UserCard> {
   const progress = getBondProgress(card);
   
   if (!progress.canUpgrade) {
-    throw new Error('Nicht genug Bond XP für ein Upgrade.');
+    throw new Error('Nicht genug Verbindungs-XP für ein Upgrade.');
   }
 
   const nextLevel = card.bondLevel + 1;

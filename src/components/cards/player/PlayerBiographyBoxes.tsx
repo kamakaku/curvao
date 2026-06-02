@@ -43,7 +43,35 @@ function positionLong(position: string) {
 }
 
 export function PlayerBiographyBoxes({ card }: { card: UserCard }) {
-  const { player, stadium } = getCardRelations(card);
+  const { player, playerClub } = getCardRelations(card);
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.sectionTitle}>BIOGRAFIE</Text>
+      <View style={styles.grid}>
+        <InfoBox 
+          icon="shirt-outline" 
+          label="POSITION" 
+          value={positionLong(player?.position || 'PLAYER')} 
+        />
+        <InfoBox 
+          icon="flag-outline" 
+          label="HERKUNFT" 
+          value={player?.nationality || 'DEUTSCHLAND'} 
+        />
+        <InfoBox 
+          icon="shield-outline" 
+          label="VEREIN" 
+          value={playerClub?.name?.toUpperCase() || 'HERTHA BSC'} 
+        />
+        <InfoBox 
+          icon="calendar-outline" 
+          label="SEASON" 
+          value="2025 / 2026" 
+        />
+      </View>
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({

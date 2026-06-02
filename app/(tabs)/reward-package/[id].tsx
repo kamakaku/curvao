@@ -138,8 +138,19 @@ export default function RewardPackageScreen() {
   }
 
   if (state === 'result' || state === 'opened') {
+    const isStarter = rewardPackage?.sourceType === 'starter_pack';
+    const isFanFive = rewardPackage?.sourceType === 'fan_five';
+
     return (
-      <PackageShell title="Deine Rewards" subtitle={isStadiumPackage ? 'Stadium Check-in abgeschlossen. Earned. Not Bought.' : 'Live Watch abgeschlossen. Earned. Not Bought.'}>
+      <PackageShell 
+        title="Deine Rewards" 
+        subtitle={
+            isStadiumPackage ? 'Stadium Check-in abgeschlossen. Earned. Not Bought.' : 
+            isStarter ? 'Starter Pack geöffnet. Willkommen bei CURVAO!' :
+            isFanFive ? 'Fan Five Performance Reward.' :
+            'Live Watch abgeschlossen. Earned. Not Bought.'
+        }
+      >
         <View style={styles.resultList}>
           {rewards.map((reward) => (
             reward.userCard ? (
@@ -148,7 +159,11 @@ export default function RewardPackageScreen() {
               </View>
             ) : (
               <View key={reward.id} style={styles.resultRow}>
-                <Ionicons name={reward.type === 'card' ? 'albums-outline' : reward.type === 'xp' ? 'flash-outline' : 'link-outline'} size={20} color={curvao.colors.gold} />
+                <Ionicons 
+                    name={reward.type === 'card' ? 'albums-outline' : (reward.type === 'xp' || reward.type === 'connection_xp') ? 'flash-outline' : 'link-outline'} 
+                    size={20} 
+                    color={curvao.colors.gold} 
+                />
                 <View style={styles.resultCopy}>
                   <Text style={styles.resultTitle}>{reward.title}</Text>
                   {reward.subtitle ? <Text style={styles.resultSubtitle}>{reward.subtitle}</Text> : null}
@@ -158,14 +173,48 @@ export default function RewardPackageScreen() {
           ))}
         </View>
         <PrimaryButton label="ZUR SAMMLUNG" onPress={() => router.replace('/collection?section=Sammlung')} />
-        <PrimaryButton label="ZUM MATCH" onPress={goMatch} variant="secondary" />
         <PrimaryButton label="ZUM DASHBOARD" onPress={() => router.replace('/')} variant="secondary" />
+        
+        {(() => {
+          if (!__DEV__) return null;
+          const debug = rewardPackage?.metadata?.selectionDebug as any;
+          if (!debug) return null;
+          return (
+            <View style={{ marginTop: 20, padding: 12, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' }}>
+              <Text style={{ color: '#fff', fontSize: 10, fontWeight: 'bold', marginBottom: 4 }}>DEV DEBUG (Reward Selection)</Text>
+              <Text style={{ color: '#aaa', fontSize: 9 }}>Reason: {debug.selectionReason || '-'}</Text>
+              <Text style={{ color: '#aaa', fontSize: 9 }}>Template: {debug.selectedTemplateId || '-'}</Text>
+              <Text style={{ color: '#aaa', fontSize: 9 }}>Pool Size: {debug.matchPlayerPoolSize ?? '-'}</Text>
+              {debug.fallbackUsed && (
+                 <Text style={{ color: '#ff6b6b', fontSize: 9 }}>Fallback: {debug.fallbackReason || 'Unknown'}</Text>
+              )}
+            </View>
+          );
+        })()}
       </PackageShell>
     );
   }
 
+  const getSourceLabel = () => {
+    switch(rewardPackage?.sourceType) {
+        case 'stadium_checkin': return 'Stadium Verified';
+        case 'live_watch': return 'Live Verified';
+        case 'starter_pack': return 'Starter Pack';
+        case 'fan_five': return 'Performance Reward';
+        case 'set_completion': return 'Set Bonus';
+        default: return 'Earned Reward';
+    }
+  };
+
   return (
-    <PackageShell title={rewardPackage?.title ?? 'Reward Package'} subtitle={isStadiumPackage ? 'Dein Stadium Reward wartet.' : 'Dein Matchday Reward wartet.'}>
+    <PackageShell 
+        title={rewardPackage?.title ?? 'Reward Package'} 
+        subtitle={
+            isStadiumPackage ? 'Dein Stadium Reward wartet.' : 
+            rewardPackage?.sourceType === 'starter_pack' ? 'Dein Starter Pack wartet.' :
+            'Dein Matchday Reward wartet.'
+        }
+    >
       <Animated.View style={[styles.packageCard, { transform: [{ scale: packScale }] }]}>
         <Animated.View style={[styles.packageGlow, { opacity: glowOpacity }]} />
         <View style={styles.packageIcon}>
@@ -173,10 +222,12 @@ export default function RewardPackageScreen() {
         </View>
         <Text style={styles.packageTitle}>REWARD PACKAGE</Text>
         <Text style={styles.packageCopy}>
-          {isStadiumPackage ? 'Du hast dir dieses Package durch deinen Stadium Check-in verdient.' : 'Du hast dir dieses Package durch Live Watch verdient.'}
+          {isStadiumPackage ? 'Du hast dir dieses Package durch deinen Stadium Check-in verdient.' : 
+           rewardPackage?.sourceType === 'starter_pack' ? 'Deine ersten Cards für deine CURVAO Sammlung.' :
+           'Du hast dir dieses Package durch Live Watch verdient.'}
         </Text>
         <View style={styles.badgeRow}>
-          <Badge label={isStadiumPackage ? 'Stadium Verified' : 'Live Verified'} />
+          <Badge label={getSourceLabel()} />
           <Badge label="Earned Reward" />
           <Badge label={`${rewardPackage?.rewardCount ?? rewards.length ?? 3} Rewards`} />
         </View>

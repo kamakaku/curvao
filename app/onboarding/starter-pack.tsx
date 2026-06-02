@@ -9,6 +9,7 @@ import { OnboardingShell } from '@/src/components/onboarding/OnboardingShell';
 import { getCurrentUser } from '@/src/services/authService';
 import { clearOnboardingDraft, getOnboardingDraft, type OnboardingDraft } from '@/src/services/onboardingDraftService';
 import { createStarterPackCards, StarterPackPersistenceError } from '@/src/services/starterPackService';
+import { openRewardPackage, type PackageReward, type RewardPackage } from '@/src/services/rewardPackageService';
 import { curvao } from '@/src/theme/curvaoTheme';
 import type { UserCard } from '@/src/types/models';
 
@@ -17,7 +18,8 @@ type OpeningState = 'ready' | 'opening' | 'revealing' | 'result' | 'error';
 export default function StarterPackScreen() {
   const router = useRouter();
   const [draft, setDraft] = useState<OnboardingDraft | null>(null);
-  const [cards, setCards] = useState<UserCard[]>([]);
+  const [rewardPackage, setRewardPackage] = useState<RewardPackage | null>(null);
+  const [rewards, setRewards] = useState<PackageReward[]>([]);
   const [state, setState] = useState<OpeningState>('ready');
   const [revealedCount, setRevealedCount] = useState(0);
   const [errorText, setErrorText] = useState<string | null>(null);
@@ -28,7 +30,7 @@ export default function StarterPackScreen() {
     getOnboardingDraft().then(setDraft);
   }, []);
 
-  const currentRevealCard = cards[revealedCount - 1];
+  const currentReward = rewards[revealedCount - 1];
 
   async function openPack() {
     setState('opening');
@@ -49,19 +51,22 @@ export default function StarterPackScreen() {
 
     try {
       const user = await getCurrentUser();
-      const createdCards = await createStarterPackCards({
+      const pkg = await createStarterPackCards({
         userId: user.id,
         favoriteClubId: draft?.favoriteClubId,
         count: 2,
       });
 
-      if (createdCards.length === 0) {
+      const result = await openRewardPackage({ userId: user.id, packageId: pkg.id });
+      
+      if (!result.rewards || result.rewards.length === 0) {
         setErrorText('Starter Cards werden vorbereitet. Du kannst trotzdem fortfahren.');
         setState('error');
         return;
       }
 
-      setCards(createdCards);
+      setRewardPackage(result.package);
+      setRewards(result.rewards);
       setRevealedCount(1);
       setState('revealing');
     } catch (error) {
@@ -75,7 +80,7 @@ export default function StarterPackScreen() {
   }
 
   function revealNext() {
-    if (revealedCount < cards.length) {
+    if (revealedCount < rewards.length) {
       setRevealedCount((current) => current + 1);
       return;
     }
@@ -102,11 +107,13 @@ export default function StarterPackScreen() {
     return (
       <OnboardingShell step={7} title="Deine ersten Cards" subtitle="Willkommen in deiner Sammlung.">
         <View style={styles.resultGrid}>
-          {cards.map((card) => (
-            <View key={card.id} style={styles.resultCardWrap}>
-              <CardTile card={card} fullWidth />
-              <Text style={styles.cardMeta}>STANDARD · STARTER PACK · GEBUNDEN</Text>
-            </View>
+          {rewards.map((reward) => (
+            reward.userCard ? (
+              <View key={reward.id} style={styles.resultCardWrap}>
+                <CardTile card={reward.userCard} fullWidth />
+                <Text style={styles.cardMeta}>STANDARD · STARTER PACK · GEBUNDEN</Text>
+              </View>
+            ) : null
           ))}
         </View>
 
@@ -124,14 +131,18 @@ export default function StarterPackScreen() {
     return (
       <OnboardingShell step={6} title="Card erhalten" subtitle="Tippe weiter, um dein Starter Pack vollständig zu öffnen.">
         <View style={styles.revealStage}>
-          {currentRevealCard ? (
+          {currentReward?.userCard ? (
             <View style={styles.revealCard}>
-              <CardTile card={currentRevealCard} fullWidth />
+              <CardTile card={currentReward.userCard} fullWidth />
             </View>
-          ) : null}
-          <Text style={styles.revealCounter}>{revealedCount} / {cards.length}</Text>
+          ) : (
+             <View style={styles.revealCard}>
+                <Text style={styles.packTitle}>{currentReward?.title}</Text>
+             </View>
+          )}
+          <Text style={styles.revealCounter}>{revealedCount} / {rewards.length}</Text>
         </View>
-        <AuthButton label={revealedCount < cards.length ? 'NÄCHSTE CARD' : 'ERGEBNIS ANZEIGEN'} onPress={revealNext} />
+        <AuthButton label={revealedCount < rewards.length ? 'NÄCHSTE CARD' : 'ERGEBNIS ANZEIGEN'} onPress={revealNext} />
       </OnboardingShell>
     );
   }

@@ -11,31 +11,57 @@ import { DashboardNextMatch } from '@/src/components/dashboard/DashboardNextMatc
 import { DashboardProgress } from '@/src/components/dashboard/DashboardProgress';
 import { EmptyState } from '@/src/components/EmptyState';
 import { getCurrentUser } from '@/src/services/authService';
+import { useAuth } from '@/src/providers/AuthProvider';
 import { getLatestCards } from '@/src/services/cardService';
 import { getMatches } from '@/src/services/matchService';
+import { getUnopenedRewardPackages, type RewardPackage } from '@/src/services/rewardPackageService';
+import { UnopenedPackageTile } from '@/src/components/rewards/UnopenedPackageTile';
 import { curvao } from '@/src/theme/curvaoTheme';
 import type { Match, UserCard } from '@/src/types/models';
 
 export default function HomeScreen() {
+  const { user: authUser } = useAuth();
   const router = useRouter();
   const [nextMatch, setNextMatch] = useState<Match>();
   const [latestCards, setLatestCards] = useState<UserCard[]>([]);
+  const [unopenedPackages, setUnopenedPackages] = useState<RewardPackage[]>([]);
   const [selectedCard, setSelectedCard] = useState<UserCard>();
 
   useEffect(() => {
     async function load() {
-      const user = await getCurrentUser();
-      const [matches, cards] = await Promise.all([getMatches(), getLatestCards(user.id)]);
-      setNextMatch(matches.find((match) => match.status !== 'finished') ?? matches[0]);
-      setLatestCards(cards);
+      try {
+        if (!authUser) return;
+        
+        const [matches, cards, packages] = await Promise.all([
+            getMatches(), 
+            getLatestCards(authUser.id),
+            getUnopenedRewardPackages(authUser.id)
+        ]);
+        setNextMatch(matches.find((match) => match.status !== 'finished') ?? matches[0]);
+        setLatestCards(cards);
+        setUnopenedPackages(packages);
+      } catch (err) {
+        console.error('[HomeScreen] Failed to load data:', err);
+      }
     }
 
     load();
-  }, []);
+  }, [authUser]);
 
   return (
     <CurvaoScreen padded={false}>
       <View style={styles.container}>
+        {/* Unopened Packages Section */}
+        {unopenedPackages.length > 0 && (
+          <View style={styles.section}>
+            <UnopenedPackageTile 
+                count={unopenedPackages.length} 
+                package={unopenedPackages[0]}
+                onPress={() => router.push(`/reward-package/${unopenedPackages[0].id}`)}
+            />
+          </View>
+        )}
+
         {/* Next Match Section */}
         <View style={styles.section}>
           {nextMatch ? (

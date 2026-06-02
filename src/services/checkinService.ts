@@ -1,4 +1,4 @@
-import { generateCardsForCheckin } from '@/src/services/cardService';
+import { createRewardPackage, type RewardPackage } from '@/src/services/rewardPackageService';
 import { pb, tryPocketBase } from '@/src/services/pocketbase';
 import type { Checkin, CheckinType, UserCard } from '@/src/types/models';
 
@@ -20,7 +20,7 @@ export async function hasOtherActiveStadiumCheckin(userId: string, currentMatchI
   );
 }
 
-export async function createCheckin(userId: string, matchId: string, type: CheckinType): Promise<{ checkin: Checkin; cards: UserCard[] }> {
+export async function createCheckin(userId: string, matchId: string, type: CheckinType): Promise<{ checkin: Checkin; rewardPackage?: RewardPackage }> {
   const payload: Omit<Checkin, 'id'> = {
     user: userId,
     match: matchId,
@@ -32,8 +32,18 @@ export async function createCheckin(userId: string, matchId: string, type: Check
   return tryPocketBase(
     async () => {
       const checkin = await pb.collection('checkins').create<Checkin>(payload);
-      const cards = await generateCardsForCheckin(userId, matchId, type, checkin.id);
-      return { checkin, cards };
+      let rewardPackage: RewardPackage | undefined;
+      
+      if (type === 'stadium') {
+        rewardPackage = await createRewardPackage({
+            userId,
+            source: 'stadium_checkin',
+            sourceId: checkin.id,
+            matchId,
+        });
+      }
+      
+      return { checkin, rewardPackage };
     },
     async () => { throw new Error('Create checkin failed'); },
   );

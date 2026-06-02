@@ -20,7 +20,7 @@ export function StadiumCardView({ card, compact, size, wantedState, earnPaths }:
     return <StadiumCardPreview card={card} />;
   }
 
-  return <StadiumHeroDetail card={card} wantedState={wantedState} earnPaths={earnPaths} />;
+  return <StadiumHeroDetail card={card} wantedState={wantedState} />;
 }
 
 const styles = StyleSheet.create({

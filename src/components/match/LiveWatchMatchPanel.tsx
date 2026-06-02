@@ -10,7 +10,7 @@ import {
   startLiveWatchSession,
   type LiveWatchAvailability,
 } from '@/src/services/liveWatchService';
-import { type RewardResult, selectLiveWatchRewardCardTemplate } from '@/src/services/rewardEngineService';
+import { selectRewardCardTemplate, type RewardResult } from '@/src/services/rewardEngineService';
 import { curvao } from '@/src/theme/curvaoTheme';
 import type { CardTemplate, LiveWatchSession, Match, UserCard } from '@/src/types/models';
 import { getMatchViewState } from '@/src/utils/matchUtils';
@@ -98,8 +98,8 @@ export function LiveWatchMatchPanel({
   useEffect(() => {
     let mounted = true;
 
-    selectLiveWatchRewardCardTemplate({ matchId, userId: userId ?? '' })
-      .then((template) => {
+    selectRewardCardTemplate({ source: 'live_watch', matchId, userId: userId ?? '' })
+      .then(({ template }: { template: CardTemplate | null }) => {
         if (!mounted) return;
         setRewardTemplate(template);
       })
@@ -181,8 +181,8 @@ export function LiveWatchMatchPanel({
         setSession(completion.session);
         await refreshAvailability();
         onRewardGranted?.({
-          granted: true,
-          message: 'Reward Package erstellt.',
+          rewards: [],
+          packageId: completion.rewardPackage.id,
         });
       } catch {
         setError('Reward konnte nicht gesichert werden.');

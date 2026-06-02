@@ -14,7 +14,7 @@ import {
   completeLiveWatchSession,
   startLiveWatchSession,
 } from '@/src/services/liveWatchService';
-import { selectLiveWatchRewardCardTemplate } from '@/src/services/rewardEngineService';
+import { selectRewardCardTemplate } from '@/src/services/rewardEngineService';
 import { useAuth } from '@/src/providers/AuthProvider';
 import type { CardTemplate, LiveWatchSession } from '@/src/types/models';
 
@@ -98,8 +98,8 @@ export default function LiveWatchScreen() {
       return undefined;
     }
 
-    selectLiveWatchRewardCardTemplate({ matchId, userId: user.id })
-      .then((template) => {
+    selectRewardCardTemplate({ source: 'live_watch', matchId, userId: user.id })
+      .then(({ template }: { template: CardTemplate | null }) => {
         if (mounted) setRewardTemplate(template);
       })
       .catch(() => {

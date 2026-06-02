@@ -1,6 +1,6 @@
-import { Tabs } from 'expo-router';
+import { Tabs, Redirect } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { HapticTab } from '@/components/haptic-tab';
@@ -8,8 +8,20 @@ import { TopBar } from '@/src/components/TopBar';
 import { curvao } from '@/src/theme/curvaoTheme';
 import { SvgIcon } from '@/src/components/ui/SvgIcon';
 import { ICONS } from '@/src/constants/Icons';
+import { useAuth } from '@/src/providers/AuthProvider';
 
 export default function TabLayout() {
+  const { user, isInitialized, isLoading } = useAuth();
+  const router = useRouter();
+
+  if (!isInitialized || isLoading) {
+    return <View style={{ flex: 1, backgroundColor: '#000' }} />;
+  }
+
+  if (!user) {
+    return <Redirect href="/(auth)" />;
+  }
+
   return (
     <View style={styles.root}>
       <Tabs

@@ -46,5 +46,5 @@ export function PlayerCardView({ card, compact, size, wantedState, earnPaths }: 
   }
 
   // All non-compact variations (medium, large, hero) now use the unified Hero design.
-  return <PlayerHeroDetail card={card} wantedState={wantedState} earnPaths={earnPaths} />;
+  return <PlayerHeroDetail card={card} wantedState={wantedState} />;
 }

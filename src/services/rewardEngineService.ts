@@ -1,193 +1,307 @@
 import { checkAchievements } from '@/src/services/achievementService';
 import { getMatchById, getMatchPlayers } from '@/src/services/matchService';
-import { pb } from '@/src/services/pocketbase';
+import { pb, tryPocketBase } from '@/src/services/pocketbase';
+import { REWARD_ECONOMY_CONFIG } from '@/src/config/rewardEconomy';
 import type { CardTemplate, Match, RewardEvent, UserCard } from '@/src/types/models';
+import type { RewardSource, RewardType, RewardResult, VerificationType, RewardRarity, PackageReward, RewardDefinition } from '@/src/types/rewards';
 
-export type RewardResult = {
-  granted: boolean;
-  alreadyGranted?: boolean;
-  userCard?: UserCard | null;
-  xpAmount?: number;
-  bondXpAmount?: number;
-  rewardEvent?: RewardEvent | null;
-  message?: string;
-};
+import { selectPersonalizedRewardCards } from './matchPlayerRewardService';
 
-const LIVE_WATCH_XP = 100;
-const LIVE_WATCH_BOND_XP = 25;
+export * from '@/src/types/rewards';
+
 let rewardEventsReadable: boolean | undefined;
 
-export async function hasRewardEvent(input: {
+/**
+ * Main function to select a card template based on reward source and context.
+ */
+export async function selectRewardCardTemplate(input: {
+  source: RewardSource;
   userId: string;
-  actionType: 'live_watch' | 'stadium_checkin';
-  sourceType: 'match';
-  sourceId: string;
-}): Promise<boolean> {
-  if (!(await canReadRewardEvents())) {
-    return false;
-  }
-
+  matchId?: string;
+  stadiumId?: string;
+  setId?: string;
+  packageId?: string;
+  lineupCardIds?: string[];
+  preferredClubId?: string;
+}): Promise<{ template: CardTemplate | null, metadata?: any }> {
+  const { source, matchId, stadiumId, packageId, preferredClubId } = input;
+  
   try {
-    const events = await pb.collection('reward_events').getFullList<RewardEvent>({
-      filter: [
-        `user = "${input.userId}"`,
-        `actionType = "${input.actionType}"`,
-        `sourceType = "${input.sourceType}"`,
-        `sourceId = "${input.sourceId}"`,
-        'status = "granted"',
-      ].join(' && '),
+    const allTemplates = await pb.collection('card_templates').getFullList<CardTemplate>({
+      filter: 'active = true',
     });
 
-    return events.length > 0;
-  } catch {
-    return false;
+    if (source === 'live_watch' && matchId) {
+      // 1. Personalized PlayerCard from match teams
+      if (packageId) {
+          const personalized = await selectPersonalizedRewardCards({
+              userId: input.userId,
+              matchId,
+              source: 'live_watch',
+              packageId,
+          });
+          if (personalized.templates.length > 0) return { template: personalized.templates[0], metadata: personalized.metadata };
+      }
+
+      // 2. Fallback MatchCard
+      const matchCard = allTemplates.find(t => t.type === 'match' && t.key === `match_${matchId}`);
+      if (matchCard) return { template: matchCard, metadata: { fallbackUsed: true, fallbackReason: 'No personalized player cards available', source: input.source, matchId } };
+
+      return { template: null };
+    }
+
+    if (source === 'stadium_checkin') {
+      // Logic for first card (usually handled by the index in the loop, but here we return one)
+      // If we need multiple, selectRewardCardTemplates should be used.
+      
+      if (stadiumId) {
+        const stadiumCard = allTemplates.find(t => t.type === 'stadium' && t.key === `stadium_${stadiumId}`);
+        if (stadiumCard) return { template: stadiumCard, metadata: { source: 'stadium_checkin', stadiumId } };
+      }
+      
+      if (matchId && packageId) {
+          const personalized = await selectPersonalizedRewardCards({
+              userId: input.userId,
+              matchId,
+              source: 'stadium_checkin',
+              packageId,
+          });
+          if (personalized.templates.length > 0) return { template: personalized.templates[0], metadata: personalized.metadata };
+      }
+
+      const matchCard = allTemplates.find(t => t.type === 'match' && (matchId ? t.key === `match_${matchId}` : true));
+      if (matchCard) return { template: matchCard, metadata: { fallbackUsed: true, fallbackReason: 'No personalized player cards available', source: input.source, matchId } };
+
+      return { template: null };
+    }
+
+    if (source === 'starter_pack') {
+        // Find players for preferred club first
+        if (preferredClubId) {
+            const clubPlayer = allTemplates.find(t => t.type === 'player' && t.key?.includes(preferredClubId));
+            if (clubPlayer) return { template: clubPlayer };
+        }
+        const fallback = allTemplates.find(t => t.type === 'player' && t.rarity === 'standard') || null;
+        return { template: fallback };
+    }
+
+    if (source === 'fan_five') {
+        // Find performance card if exists
+        const perfCard = allTemplates.find(t => t.type === 'player' && t.rarity === 'rare');
+        return { template: perfCard || null };
+    }
+
+    if (source === 'special_moment') {
+        return { template: allTemplates.find(t => t.type === 'moment') || null };
+    }
+
+    // Default fallback
+    return { template: allTemplates.find(t => t.type === 'player') || null };
+  } catch (error) {
+    console.error('[RewardEngine] Failed to select template', error);
+    return { template: null };
   }
 }
 
-export async function grantLiveWatchReward(input: {
+/**
+ * Creates a RewardEvent record in PocketBase.
+ */
+export async function createRewardEvent(input: {
   userId: string;
-  matchId: string;
-  sessionId: string;
-  watchedSeconds: number;
-  requiredSeconds: number;
+  actionType: RewardSource;
+  sourceType: RewardEvent['sourceType'];
+  sourceId?: string;
+  rewardType: RewardType;
+  cardId?: string;
+  xpAmount?: number;
+  bondXpAmount?: number;
+  status: RewardEvent['status'];
+  metadata?: any;
+}): Promise<RewardEvent> {
+  const payload: Omit<RewardEvent, 'id' | 'createdAt'> = {
+    user: input.userId,
+    actionType: input.actionType as any,
+    sourceType: input.sourceType,
+    sourceId: input.sourceId,
+    rewardType: input.rewardType as any,
+    card: input.cardId,
+    xpAmount: input.xpAmount,
+    bondXpAmount: input.bondXpAmount,
+    status: input.status,
+    metadata: typeof input.metadata === 'string' ? input.metadata : JSON.stringify(input.metadata || {}),
+  };
+
+  return await pb.collection('reward_events').create<RewardEvent>(payload);
+}
+
+/**
+ * Grants rewards for a Clash session.
+ */
+export async function grantClashRewards(input: {
+  userId: string;
+  result: 'win' | 'lose' | 'draw';
+  cardIds: string[];
 }): Promise<RewardResult> {
-  const alreadyRewarded = await hasRewardEvent({
+  const { win, lose, draw } = require('../config/rewardEconomy').CLASH_REWARDS;
+  const rewards = input.result === 'win' ? win : input.result === 'lose' ? lose : draw;
+  
+  await incrementUserXp(input.userId, rewards.xp);
+  
+  // Log events
+  await createRewardEvent({
     userId: input.userId,
-    actionType: 'live_watch',
-    sourceType: 'match',
-    sourceId: input.matchId,
+    actionType: 'clash',
+    sourceType: 'pack', // Source is the clash session
+    rewardType: 'xp',
+    xpAmount: rewards.xp,
+    status: 'granted',
   });
 
-  if (alreadyRewarded) {
-    return {
-      granted: false,
-      alreadyGranted: true,
-      xpAmount: LIVE_WATCH_XP,
-      bondXpAmount: LIVE_WATCH_BOND_XP,
-      message: 'Live Watch Reward wurde bereits vergeben.',
-    };
-  }
-
-  const existingLiveCard = await getExistingLiveWatchCard(input.userId, input.matchId);
-  if (existingLiveCard) {
-    const rewardEvent = await createRewardEvent({
-      userId: input.userId,
-      matchId: input.matchId,
-      sessionId: input.sessionId,
-      rewardType: 'card',
-      userCardId: existingLiveCard.id,
-      watchedSeconds: input.watchedSeconds,
-      requiredSeconds: input.requiredSeconds,
-    });
-
-    return {
-      granted: false,
-      alreadyGranted: true,
-      userCard: existingLiveCard,
-      xpAmount: LIVE_WATCH_XP,
-      bondXpAmount: LIVE_WATCH_BOND_XP,
-      rewardEvent,
-      message: 'Live Watch Card war bereits vorhanden.',
-    };
-  }
-
-  const template = await selectLiveWatchRewardCardTemplate({ matchId: input.matchId, userId: input.userId });
-  const userCard = template
-    ? await createRewardUserCardFromTemplate({
-      userId: input.userId,
-      matchId: input.matchId,
-      template,
-      bondXpAmount: LIVE_WATCH_BOND_XP,
-    })
-    : null;
-
-  await incrementUserXp(input.userId, LIVE_WATCH_XP);
-
-  const rewardEvent = await createRewardEvent({
+  await createRewardEvent({
     userId: input.userId,
-    matchId: input.matchId,
-    sessionId: input.sessionId,
-    rewardType: userCard ? 'card' : 'xp',
-    userCardId: userCard?.id,
-    watchedSeconds: input.watchedSeconds,
-    requiredSeconds: input.requiredSeconds,
+    actionType: 'clash',
+    sourceType: 'pack',
+    rewardType: 'bond_xp',
+    bondXpAmount: rewards.connectionXp,
+    status: 'granted',
+    metadata: { cardIds: input.cardIds },
   });
-
-  await checkAchievements(input.userId);
 
   return {
-    granted: true,
-    userCard,
-    xpAmount: LIVE_WATCH_XP,
-    bondXpAmount: LIVE_WATCH_BOND_XP,
-    rewardEvent,
-    message: userCard ? 'Live Verified Card erhalten.' : 'Live Watch abgeschlossen. XP erhalten.',
+    rewards: [
+      { id: 'xp', type: 'xp', title: `+${rewards.xp} XP`, amount: rewards.xp },
+      { id: 'connection_xp', type: 'connection_xp', title: `+${rewards.connectionXp} Verbindungs-XP`, amount: rewards.connectionXp },
+      { id: 'clash_points', type: 'clash_points', title: `+${rewards.clashPoints} Clash Points`, amount: rewards.clashPoints },
+    ],
+    xpAmount: rewards.xp,
+    connectionXpAmount: rewards.connectionXp,
+    clashPoints: rewards.clashPoints,
   };
 }
 
-export async function selectLiveWatchRewardCardTemplate(input: {
-  matchId: string;
+/**
+ * Grants rewards for a Fan Five gameweek/performance.
+ */
+export async function grantFanFiveRewards(input: {
   userId: string;
-}): Promise<CardTemplate | null> {
-  void input;
-  let templates: CardTemplate[] = [];
+  tier: 'participation' | 'top50' | 'top25' | 'top10';
+  gameweekId: string;
+}): Promise<RewardResult> {
+  const { FAN_FIVE_TIER_REWARDS } = require('../config/rewardEconomy');
+  const rewards = FAN_FIVE_TIER_REWARDS[input.tier];
+  const results: PackageReward[] = [];
 
-  try {
-    templates = await pb.collection('card_templates').getFullList<CardTemplate>({
-      filter: 'active = true',
-      sort: 'type,rarity',
-    });
-  } catch {
-    templates = [];
+  await incrementUserXp(input.userId, rewards.xp);
+  results.push({ id: 'xp', type: 'xp', title: `+${rewards.xp} XP`, amount: rewards.xp });
+  results.push({ id: 'connection_xp', type: 'connection_xp', title: `+${rewards.connectionXp} Verbindungs-XP`, amount: rewards.connectionXp });
+
+  if (rewards.fanFivePoints) {
+    results.push({ id: 'fan_five_points', type: 'fan_five_points', title: `+${rewards.fanFivePoints} Fan Five Points`, amount: rewards.fanFivePoints });
   }
 
-  return selectTestingPlayerTemplate(templates);
-}
-
-export async function selectStadiumCheckinRewardCardTemplate(): Promise<CardTemplate | null> {
-  let templates: CardTemplate[] = [];
-
-  try {
-    templates = await pb.collection('card_templates').getFullList<CardTemplate>({
-      filter: 'active = true',
-      sort: 'type,rarity',
-    });
-  } catch {
-    templates = [];
+  let packageId: string | undefined;
+  if (rewards.package) {
+      const pkg = await require('./rewardPackageService').createRewardPackage({
+          userId: input.userId,
+          source: 'fan_five',
+          sourceId: input.gameweekId,
+      });
+      packageId = pkg.id;
+      results.push({ id: 'package', type: 'package', title: 'Reward Package erhalten' });
   }
 
-  return selectTestingPlayerTemplate(templates);
+  return {
+    rewards: results,
+    packageId,
+    xpAmount: rewards.xp,
+    connectionXpAmount: rewards.connectionXp,
+    fanFivePoints: rewards.fanFivePoints,
+  };
 }
 
-export async function createRewardUserCardFromTemplate(input: {
+/**
+ * Grants rewards for completing a Card Set.
+ */
+export async function grantSetCompletionRewards(input: {
   userId: string;
-  matchId: string;
+  setId: string;
+}): Promise<RewardResult> {
+  const alreadyClaimed = await hasRewardEvent(input.userId, 'set_completion', input.setId);
+  if (alreadyClaimed) {
+      throw new Error('Belohnung für dieses Set wurde bereits beansprucht.');
+  }
+
+  const { REWARD_ECONOMY_CONFIG } = require('../config/rewardEconomy');
+  const config = REWARD_ECONOMY_CONFIG.set_completion;
+  const xpReward = config.rewards.find((r: RewardDefinition) => r.type === 'xp');
+
+  if (xpReward) {
+      await incrementUserXp(input.userId, xpReward.amount || 0);
+      await createRewardEvent({
+          userId: input.userId,
+          actionType: 'set_completion',
+          sourceType: 'card_set',
+          sourceId: input.setId,
+          rewardType: 'xp',
+          xpAmount: xpReward.amount,
+          status: 'granted',
+      });
+  }
+
+  return {
+    rewards: [
+      { id: 'xp', type: 'xp', title: `+${xpReward?.amount || 250} XP`, amount: xpReward?.amount || 250 },
+      // TODO: Add Badge and Frame once implemented
+    ],
+    xpAmount: xpReward?.amount || 250,
+  };
+}
+
+/**
+ * Creates a UserCard from a template with standard reward fields.
+ */
+export async function createRewardUserCard(input: {
+  userId: string;
   template: CardTemplate;
-  bondXpAmount: number;
-  origin?: UserCard['origin'];
-  eventTitle?: string;
-  eventDescription?: string;
+  origin: UserCard['origin'];
+  verificationType: VerificationType;
+  matchId?: string;
+  stadiumId?: string;
+  setId?: string;
+  packageId?: string;
+  rarity?: RewardRarity;
 }): Promise<UserCard> {
-  const match = await getMatchById(input.matchId);
   const now = new Date().toISOString();
-  const payload = await getRewardCardPayload(
-    input.userId,
-    input.template,
-    input.matchId,
-    match,
-    now,
-    input.bondXpAmount,
-    input.origin ?? 'live_verified',
-  );
   
-  const card = await pb.collection('user_cards').create<UserCard>(removeUndefined(payload));
+  const payload: Omit<UserCard, 'id'> = {
+    user: input.userId,
+    template: input.template.id,
+    type: input.template.type,
+    title: input.template.name,
+    subtitle: getVerificationLabel(input.verificationType),
+    rarity: (input.rarity || input.template.rarity) as any,
+    origin: input.origin,
+    acquiredAt: now,
+    match: input.matchId,
+    stadium: input.stadiumId,
+    tradable: false,
+    bound: true,
+    isMainCard: false,
+    bondXp: 0,
+    bondLevel: 1,
+    archived: true,
+    favorite: false,
+  };
 
+  const card = await pb.collection('user_cards').create<UserCard>(payload);
+
+  // Log card creation event
   await pb.collection('card_events').create({
     user: input.userId,
     card: card.id,
     eventType: 'earned',
-    title: input.eventTitle ?? 'Live Watch Reward',
-    description: input.eventDescription ?? `${card.title} wurde über Live Watch verdient.`,
+    title: 'Reward erhalten',
+    description: `${card.title} wurde verdient.`,
     relatedMatch: input.matchId,
     createdAt: now,
   });
@@ -195,181 +309,56 @@ export async function createRewardUserCardFromTemplate(input: {
   return card;
 }
 
-async function getExistingLiveWatchCard(userId: string, matchId: string) {
-  try {
-    const cards = await pb.collection('user_cards').getFullList<UserCard>({
-      filter: `user = "${userId}" && match = "${matchId}" && origin = "live_verified"`,
-      sort: '-acquiredAt',
-    });
-    return cards[0] ?? null;
-  } catch {
-    return null;
-  }
-}
-
-async function getRewardCardPayload(
-  userId: string,
-  template: CardTemplate,
-  matchId: string,
-  match: Match | undefined,
-  acquiredAt: string,
-  bondXpAmount: number,
-  origin: UserCard['origin'],
-): Promise<Omit<UserCard, 'id'>> {
-  if (template.type === 'player') {
-    const matchPlayers = await getMatchPlayers(matchId);
-    const matchPlayer = matchPlayers[0];
-    const playerRecord = matchPlayer ? await pb.collection('players').getOne(matchPlayer.player).catch(() => null) : null;
-    const homeName = match?.expand?.homeClub?.name || 'Home';
-
-    return baseRewardPayload(userId, template, matchId, acquiredAt, bondXpAmount, origin, {
-      type: 'player',
-      title: playerRecord?.displayName ?? 'Live Verified Player',
-      subtitle: `${homeName} | Live Watch`,
-      player: matchPlayer?.player,
-    });
-  }
-
-  if (template.type === 'stadium') {
-    const stadium = match?.expand?.stadium;
-
-    return baseRewardPayload(userId, template, matchId, acquiredAt, bondXpAmount, origin, {
-      type: 'stadium',
-      title: stadium?.name ?? match?.stadiumName ?? 'Live Verified Stadium',
-      subtitle: stadium?.city ?? match?.stadiumCity ?? 'Live Watch',
-      stadium: stadium?.id ?? match?.stadium,
-      stadiumName: stadium?.name ?? match?.stadiumName,
-      stadiumCity: stadium?.city ?? match?.stadiumCity,
-      stadiumCapacity: stadium?.capacity ?? match?.stadiumCapacity,
-      stadiumImage: stadium?.image ?? match?.stadiumImage,
-    });
-  }
-
-  const homeName = match?.expand?.homeClub?.name || 'Home';
-  const awayName = match?.expand?.awayClub?.name || 'Away';
-
-  return baseRewardPayload(userId, template, matchId, acquiredAt, bondXpAmount, origin, {
-    type: 'match',
-    title: match ? `${homeName} vs ${awayName}` : 'Live Verified Match',
-    subtitle: match ? `${match.competition} | ${new Date(match.kickoffAt).toLocaleDateString('de-DE')}` : 'Live Watch',
-    stadium: match?.stadium,
-    stadiumName: match?.stadiumName,
-    stadiumCity: match?.stadiumCity,
-    stadiumCapacity: match?.stadiumCapacity,
-    stadiumImage: match?.stadiumImage,
-  });
-}
-
-function baseRewardPayload(
-  userId: string,
-  template: CardTemplate,
-  matchId: string,
-  acquiredAt: string,
-  bondXpAmount: number,
-  origin: UserCard['origin'],
-  partial: Partial<Omit<UserCard, 'id'>>,
-): Omit<UserCard, 'id'> {
-  return {
-    user: userId,
-    template: template.id,
-    type: partial.type ?? template.type,
-    title: partial.title ?? template.name,
-    subtitle: partial.subtitle ?? 'Live Verified',
-    rarity: template.rarity ?? 'standard',
-    origin,
-    editionNumber: 0,
-    editionSize: 10000,
-    match: matchId,
-    player: partial.player,
-    stadium: partial.stadium,
-    tradable: false,
-    bound: true,
-    isMainCard: false,
-    bondXp: bondXpAmount,
-    bondLevel: 1,
-    acquiredAt,
-    archived: false,
-    favorite: false,
-    stadiumName: partial.stadiumName,
-    stadiumCity: partial.stadiumCity,
-    stadiumCapacity: partial.stadiumCapacity,
-    stadiumImage: partial.stadiumImage,
-  };
-}
-
-function selectTestingPlayerTemplate(templates: CardTemplate[]): CardTemplate | null {
-  return (
-    templates.find((template) => template.type === 'player' && template.rarity === 'standard') ??
-    templates.find((template) => template.type === 'player') ??
-    null
-  );
-}
-
-async function createRewardEvent(input: {
-  userId: string;
-  matchId: string;
-  sessionId: string;
-  rewardType: 'card' | 'xp';
-  userCardId?: string;
-  watchedSeconds: number;
-  requiredSeconds: number;
-}) {
-  const payload: Omit<RewardEvent, 'id'> = {
-    user: input.userId,
-    actionType: 'live_watch',
-    sourceType: 'match',
-    sourceId: input.matchId,
-    match: input.matchId,
-    rewardType: input.rewardType,
-    card: input.userCardId,
-    xpAmount: LIVE_WATCH_XP,
-    bondXpAmount: LIVE_WATCH_BOND_XP,
-    status: 'granted',
-    createdAt: new Date().toISOString(),
-    metadata: JSON.stringify({
-      sessionId: input.sessionId,
-      requiredSeconds: input.requiredSeconds,
-      watchedSeconds: input.watchedSeconds,
-    }),
-  };
-
-  return await pb.collection('reward_events').create<RewardEvent>(payload);
-}
-
-async function incrementUserXp(userId: string, xpAmount: number) {
+/**
+ * Increments global Fan XP for a user.
+ */
+export async function incrementUserXp(userId: string, amount: number) {
+  if (amount <= 0) return;
   try {
     const user = await pb.collection('users').getOne(userId);
     const currentFanXp = typeof user.fanXp === 'number' ? user.fanXp : 0;
-    await pb.collection('users').update(userId, { fanXp: currentFanXp + xpAmount });
+    await pb.collection('users').update(userId, { fanXp: currentFanXp + amount });
   } catch (error) {
-    console.error('Failed to increment user XP', error);
+    console.error('[RewardEngine] Failed to increment user XP', error);
   }
 }
 
-function removeUndefined<T extends Record<string, unknown>>(input: T) {
-  return Object.fromEntries(Object.entries(input).filter(([, value]) => value !== undefined));
+/**
+ * Checks if a specific reward has already been granted.
+ */
+export async function hasRewardEvent(userId: string, actionType: RewardSource, sourceId: string): Promise<boolean> {
+  if (!(await canReadRewardEvents())) return false;
+  try {
+    const records = await pb.collection('reward_events').getFullList({
+      filter: `user = "${userId}" && actionType = "${actionType}" && sourceId = "${sourceId}" && status = "granted"`,
+      limit: 1,
+    });
+    return records.length > 0;
+  } catch {
+    return false;
+  }
+}
+
+function getVerificationLabel(type: VerificationType): string {
+  switch (type) {
+    case 'live_verified': return 'Live Verified';
+    case 'stadium_verified': return 'Stadium Verified';
+    case 'starter': return 'Starter Card';
+    case 'performance': return 'Performance Reward';
+    case 'clash': return 'Clash Reward';
+    case 'set_completion': return 'Set Bonus';
+    case 'special_moment': return 'Special Moment';
+    default: return 'Earned';
+  }
 }
 
 async function canReadRewardEvents() {
-  if (rewardEventsReadable !== undefined) {
-    return rewardEventsReadable;
-  }
-
+  if (rewardEventsReadable !== undefined) return rewardEventsReadable;
   try {
     await pb.collection('reward_events').getList(1, 1, { skipTotal: true });
     rewardEventsReadable = true;
-  } catch (error) {
-    rewardEventsReadable = !isCollectionMissingError(error);
+  } catch {
+    rewardEventsReadable = false;
   }
-
   return rewardEventsReadable;
-}
-
-function isCollectionMissingError(error: unknown) {
-  return Boolean(
-    error &&
-    typeof error === 'object' &&
-    'status' in error &&
-    Number((error as { status?: number }).status) === 404,
-  );
 }

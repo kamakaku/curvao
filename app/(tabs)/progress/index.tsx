@@ -78,10 +78,16 @@ export default function ProgressDetailScreen() {
   return (
     <CurvaoScreen padded={false}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <Pressable onPress={() => router.back()} style={styles.backButtonRow}>
-          <Ionicons name="chevron-back" size={20} color={CURVAO_DESIGN.gold} />
-          <Text style={styles.backButtonText}>ZURÜCK ZUM DASHBOARD</Text>
-        </Pressable>
+        <View style={styles.topBar}>
+          <Pressable onPress={() => router.back()} style={styles.backButtonRow}>
+            <Ionicons name="chevron-back" size={20} color={CURVAO_DESIGN.gold} />
+            <Text style={styles.backButtonText}>DASHBOARD</Text>
+          </Pressable>
+
+          <Pressable onPress={() => router.push('/settings')} style={styles.settingsButton}>
+            <Ionicons name="settings-outline" size={22} color={CURVAO_DESIGN.text} />
+          </Pressable>
+        </View>
 
         {/* Hero Section */}
         <View style={styles.heroSection}>
@@ -243,6 +249,18 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '800',
     letterSpacing: 1.5,
+  },
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingRight: 20,
+  },
+  settingsButton: {
+    width: 44,
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   loadingText: {
     color: CURVAO_DESIGN.muted,

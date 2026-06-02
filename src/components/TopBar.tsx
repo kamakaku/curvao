@@ -44,9 +44,11 @@ export function TopBar() {
 
         {/* Right Side: Bell, Avatar, Level/XP */}
         <View style={styles.rightSection}>
-          <Ionicons name="notifications-outline" size={24} color={curvao.colors.text} style={styles.bellIcon} />
+          <Pressable onPress={() => router.push('/settings/notifications')}>
+            <Ionicons name="notifications-outline" size={24} color={curvao.colors.text} style={styles.bellIcon} />
+          </Pressable>
           <Pressable 
-            onPress={() => router.push('/pass')}
+            onPress={() => router.push('/progress')}
             style={({ pressed }) => [styles.profileSection, pressed && styles.pressed]}
           >
             <View style={styles.avatarContainer}>

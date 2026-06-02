@@ -130,12 +130,14 @@ export function CardDetailPanel({ card, onClose }: { card?: UserCard; cards?: Us
                 </View>
               </>
             ) : (
-              <View style={styles.nonHeroWrapper}>
-                 <CardRenderer card={internalCard} playerSize="large" />
-                 <Pressable onPress={handleClose} style={styles.closeOverlayButton}>
-                    <Ionicons name="close-circle" size={48} color="rgba(255,255,255,0.7)" />
-                 </Pressable>
-              </View>
+              internalCard && (
+                <View style={styles.nonHeroWrapper}>
+                   <CardRenderer card={internalCard} playerSize="large" />
+                   <Pressable onPress={handleClose} style={styles.closeOverlayButton}>
+                      <Ionicons name="close-circle" size={48} color="rgba(255,255,255,0.7)" />
+                   </Pressable>
+                </View>
+              )
             )}
           </Animated.View>
         </View>

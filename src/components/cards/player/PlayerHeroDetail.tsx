@@ -68,7 +68,7 @@ function getResponsiveHeroLastNameSize(text: string) {
   return 24;
 }
 
-export function PlayerHeroDetail({ card, wantedState, earnPaths }: PlayerHeroDetailProps) {
+export function PlayerHeroDetail({ card, wantedState }: PlayerHeroDetailProps) {
   const insets = useSafeAreaInsets();
   const [currentCard, setCurrentCard] = useState(card);
   const [actionError, setActionError] = useState<string | undefined>();
@@ -102,7 +102,7 @@ export function PlayerHeroDetail({ card, wantedState, earnPaths }: PlayerHeroDet
           : '—';
   const summaryMetrics = [
     {
-      label: 'Bond Level',
+      label: 'Verbindungslevel',
       value: `L${bondProgress.level}`,
       sub: bondProgress.requiredXp
         ? `${bondProgress.currentXp.toLocaleString('de-DE')} / ${bondProgress.requiredXp.toLocaleString('de-DE')} XP`
@@ -122,8 +122,8 @@ export function PlayerHeroDetail({ card, wantedState, earnPaths }: PlayerHeroDet
     {
       icon: 'heart-outline' as const,
       value: `${bondProgress.level}`,
-      label: 'Fan Bond\nLevel',
-      sub: `Von ${bondProgress.isMaxLevel ? bondProgress.level : 5}`,
+      label: 'Fan-Verbindung',
+      sub: `Von ${bondProgress.isMaxLevel ? bondProgress.level : 5} Leveln`,
       progress: bondProgress.progress,
     },
     {
@@ -211,7 +211,7 @@ export function PlayerHeroDetail({ card, wantedState, earnPaths }: PlayerHeroDet
       {
         id: 'bond',
         icon: 'flash' as const,
-        label: bondProgress.canUpgrade ? 'Upgrade' : 'Bond',
+        label: bondProgress.canUpgrade ? 'Upgrade' : 'Level',
         active: bondProgress.canUpgrade,
         disabled: !bondProgress.canUpgrade,
         onPress: async () => {
@@ -391,7 +391,7 @@ export function PlayerHeroDetail({ card, wantedState, earnPaths }: PlayerHeroDet
 
           <PlayerConnectionCompact items={connectionItems} />
 
-          <PlayerHighlightMomentCompact />
+          <PlayerBiographyBoxes card={currentCard} />
 
           <PlayerCardDetailsAccordion rows={detailRows} />
           <PlayerCardHistoryAccordion cardId={currentCard.id} />

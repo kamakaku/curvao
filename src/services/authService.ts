@@ -17,20 +17,15 @@ export type RegisterInput = {
 };
 
 export async function getCurrentUser(): Promise<CurrentUser> {
-  return tryPocketBase(
-    async () => {
-      if (pb.authStore.record?.id) {
-        return {
-          id: pb.authStore.record.id,
-          displayName: String(pb.authStore.record.name || pb.authStore.record.email || 'Curvao Fan'),
-          onboardingCompleted: pb.authStore.record.onboardingCompleted,
-        };
-      }
+  if (pb.authStore.record?.id) {
+    return {
+      id: pb.authStore.record.id,
+      displayName: String(pb.authStore.record.name || pb.authStore.record.email || 'Curvao Fan'),
+      onboardingCompleted: pb.authStore.record.onboardingCompleted,
+    };
+  }
 
-      throw new Error('No authenticated user');
-    },
-    () => { throw new Error('Auth failed'); },
-  );
+  throw new Error('No authenticated user');
 }
 
 export async function loginWithEmail(email: string, password: string): Promise<AuthModel> {
@@ -59,7 +54,13 @@ export async function requestPasswordReset(email: string): Promise<void> {
   await pb.collection('users').requestPasswordReset(email);
 }
 
-export async function updateUserProfile(input: { name?: string; username?: string; avatar?: string }): Promise<AuthModel> {
+export async function updateUserProfile(input: { 
+  name?: string; 
+  username?: string; 
+  avatar?: string;
+  favoriteClub?: string;
+  [key: string]: any;
+}): Promise<AuthModel> {
   const userId = pb.authStore.model?.id;
   if (!userId) {
     throw new Error('No authenticated user to update profile.');
