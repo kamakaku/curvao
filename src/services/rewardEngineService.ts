@@ -11,6 +11,50 @@ export * from '@/src/types/rewards';
 
 let rewardEventsReadable: boolean | undefined;
 
+function parseTemplateVisualConfig(template: CardTemplate) {
+  if (!template.visualConfig) return null;
+  try {
+    return JSON.parse(template.visualConfig) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+}
+
+function getClubTemplate(allTemplates: CardTemplate[], clubId?: string | null) {
+  if (!clubId) return null;
+  return allTemplates.find((template) => template.type === 'club' && template.key === `club_${clubId}`) ?? null;
+}
+
+function getPlayerTemplatesForClub(allTemplates: CardTemplate[], clubId?: string | null) {
+  if (!clubId) return [];
+  return allTemplates.filter((template) => {
+    if (template.type !== 'player') return false;
+    const visualConfig = parseTemplateVisualConfig(template);
+    return visualConfig?.clubId === clubId;
+  });
+}
+
+async function getFavoriteClubId(userId: string) {
+  try {
+    const user = await pb.collection('users').getOne(userId, { requestKey: null });
+    return (user.favoriteClubId || user.favoriteClub || null) as string | null;
+  } catch {
+    return null;
+  }
+}
+
+async function getExistingUserCards(userId: string) {
+  try {
+    return await pb.collection('user_cards').getFullList<UserCard>({
+      filter: `user = "${userId}"`,
+      fields: 'id,template,type,club,player',
+      requestKey: null,
+    });
+  } catch {
+    return [];
+  }
+}
+
 /**
  * Main function to select a card template based on reward source and context.
  */
@@ -27,9 +71,18 @@ export async function selectRewardCardTemplate(input: {
   const { source, matchId, stadiumId, packageId, preferredClubId } = input;
   
   try {
-    const allTemplates = await pb.collection('card_templates').getFullList<CardTemplate>({
-      filter: 'active = true',
-    });
+    const [allTemplates, resolvedFavoriteClubId, existingUserCards] = await Promise.all([
+      pb.collection('card_templates').getFullList<CardTemplate>({
+        filter: 'active = true',
+      }),
+      preferredClubId ? Promise.resolve(preferredClubId) : getFavoriteClubId(input.userId),
+      getExistingUserCards(input.userId),
+    ]);
+
+    const ownedTemplateIds = new Set(existingUserCards.map((card) => card.template).filter(Boolean));
+    const ownedClubIds = new Set(existingUserCards.map((card) => card.club).filter(Boolean));
+    const favoriteClubTemplate = getClubTemplate(allTemplates, resolvedFavoriteClubId);
+    const favoriteClubPlayers = getPlayerTemplatesForClub(allTemplates, resolvedFavoriteClubId);
 
     if (source === 'live_watch' && matchId) {
       // 1. Personalized PlayerCard from match teams
@@ -76,18 +129,46 @@ export async function selectRewardCardTemplate(input: {
     }
 
     if (source === 'starter_pack') {
-        // Find players for preferred club first
-        if (preferredClubId) {
-            const clubPlayer = allTemplates.find(t => t.type === 'player' && t.key?.includes(preferredClubId));
-            if (clubPlayer) return { template: clubPlayer };
+        if (favoriteClubTemplate && !ownedTemplateIds.has(favoriteClubTemplate.id) && !ownedClubIds.has(resolvedFavoriteClubId || '')) {
+            return {
+              template: favoriteClubTemplate,
+              metadata: {
+                source,
+                selectionReason: 'Favorite club template for starter pack',
+                preferredClubId: resolvedFavoriteClubId,
+              },
+            };
         }
-        const fallback = allTemplates.find(t => t.type === 'player' && t.rarity === 'standard') || null;
+
+        const favoriteClubPlayer = favoriteClubPlayers.find((template) => !ownedTemplateIds.has(template.id));
+        if (favoriteClubPlayer) {
+          return {
+            template: favoriteClubPlayer,
+            metadata: {
+              source,
+              selectionReason: 'Favorite club player template for starter pack',
+              preferredClubId: resolvedFavoriteClubId,
+            },
+          };
+        }
+
+        const fallback = allTemplates.find((t) => t.type === 'player' && t.rarity === 'standard' && !ownedTemplateIds.has(t.id)) || null;
         return { template: fallback };
     }
 
     if (source === 'fan_five') {
-        // Find performance card if exists
-        const perfCard = allTemplates.find(t => t.type === 'player' && t.rarity === 'rare');
+        if (favoriteClubTemplate && !ownedTemplateIds.has(favoriteClubTemplate.id)) {
+          return {
+            template: favoriteClubTemplate,
+            metadata: {
+              source,
+              selectionReason: 'Favorite club template for fan five',
+              preferredClubId: resolvedFavoriteClubId,
+            },
+          };
+        }
+
+        const perfCard = allTemplates.find((t) => t.type === 'player' && t.rarity === 'rare' && !ownedTemplateIds.has(t.id));
         return { template: perfCard || null };
     }
 
@@ -272,6 +353,22 @@ export async function createRewardUserCard(input: {
   rarity?: RewardRarity;
 }): Promise<UserCard> {
   const now = new Date().toISOString();
+  let visualConfig: Record<string, unknown> | null = null;
+
+  if (input.template.visualConfig) {
+    try {
+      visualConfig = JSON.parse(input.template.visualConfig);
+    } catch {
+      visualConfig = null;
+    }
+  }
+
+  const entityType = typeof visualConfig?.entityType === 'string' ? visualConfig.entityType : undefined;
+  const entityId = typeof visualConfig?.entityId === 'string' ? visualConfig.entityId : undefined;
+  const templateMatchId = typeof visualConfig?.matchId === 'string' ? visualConfig.matchId : undefined;
+  const templateStadiumId = typeof visualConfig?.stadiumId === 'string' ? visualConfig.stadiumId : undefined;
+  const templateClubId = typeof visualConfig?.clubId === 'string' ? visualConfig.clubId : undefined;
+  const templatePlayerId = typeof visualConfig?.playerId === 'string' ? visualConfig.playerId : undefined;
   
   const payload: Omit<UserCard, 'id'> = {
     user: input.userId,
@@ -282,8 +379,10 @@ export async function createRewardUserCard(input: {
     rarity: (input.rarity || input.template.rarity) as any,
     origin: input.origin,
     acquiredAt: now,
-    match: input.matchId,
-    stadium: input.stadiumId,
+    match: input.matchId || templateMatchId || (entityType === 'match' ? entityId : undefined),
+    player: templatePlayerId || (entityType === 'player' ? entityId : undefined),
+    stadium: input.stadiumId || templateStadiumId || (entityType === 'stadium' ? entityId : undefined),
+    club: templateClubId || (entityType === 'club' ? entityId : undefined),
     tradable: false,
     bound: true,
     isMainCard: false,

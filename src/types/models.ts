@@ -1,4 +1,4 @@
-export type CardType = 'match' | 'player' | 'moment' | 'stadium' | 'patch' | 'season';
+export type CardType = 'match' | 'player' | 'moment' | 'stadium' | 'club' | 'patch' | 'season';
 export type Rarity = 'standard' | 'rare' | 'epic' | 'legendary' | 'oneoff';
 export type CardOrigin =
   | 'self_earned'
@@ -48,6 +48,8 @@ export type Club = {
   primaryColor?: string;
   secondaryColor?: string;
   crest?: string;
+  sportmonksTeamId?: string;
+  sportmonksVenueId?: string;
   expand?: Record<string, any>;
 };
 
@@ -62,6 +64,7 @@ export type Player = {
   nationality?: string;
   avatar?: string;
   active: boolean;
+  sportmonksPlayerId?: string;
   expand?: {
     club?: Club;
   };
@@ -120,9 +123,18 @@ export type MatchPlayer = {
   match: string;
   player: string;
   club: string;
+  teamSide?: 'home' | 'away';
+  sportmonksFixtureId?: string;
+  sportmonksPlayerId?: string;
+  sportmonksParticipantId?: string;
   started: boolean;
+  substitutedIn?: boolean;
+  minutesPlayed?: number;
   minuteIn?: number;
   minuteOut?: number;
+  position?: string;
+  rawLineup?: Record<string, unknown>;
+  importedAt?: string;
 };
 
 export type MatchEvent = {
@@ -156,10 +168,55 @@ export type MatchEvent = {
   subtitle?: string;
   result?: string;
   info?: string;
+  rawEvent?: Record<string, unknown>;
   expand?: {
     club?: Club;
     player?: Player;
     relatedPlayer?: Player;
+  };
+};
+
+export type PlayerMatchPerformance = {
+  id: string;
+  match: string;
+  player: string;
+  club?: string;
+  teamSide?: 'home' | 'away';
+  sportmonksFixtureId?: string;
+  sportmonksPlayerId?: string;
+  sportmonksParticipantId?: string;
+  rating?: number | null;
+  formScore?: number | null;
+  performanceScore?: number | null;
+  minutesPlayed?: number | null;
+  started?: boolean;
+  substitutedIn?: boolean;
+  goals?: number;
+  assists?: number;
+  shots?: number;
+  shotsOnTarget?: number;
+  passes?: number;
+  keyPasses?: number;
+  tackles?: number;
+  interceptions?: number;
+  duelsWon?: number;
+  saves?: number;
+  cleanSheet?: boolean;
+  yellowCards?: number;
+  redCards?: number;
+  eventBoost?: number | null;
+  roleScore?: number | null;
+  curvaoScore?: number | null;
+  rawStats?: Record<string, unknown> | null;
+  rawLineup?: Record<string, unknown> | null;
+  rawEvents?: Record<string, unknown> | null;
+  importedAt?: string;
+  updated?: string;
+  testKey?: string;
+  expand?: {
+    match?: Match;
+    player?: Player;
+    club?: Club;
   };
 };
 
@@ -256,6 +313,7 @@ export type UserCard = {
   editionSize?: number;
   match?: string;
   player?: string;
+  club?: string;
   stadium?: string;
   sourceCheckin?: string;
   tradable: boolean;
@@ -274,6 +332,7 @@ export type UserCard = {
   stadiumVisitCount?: number;
   favoriteStadium?: boolean;
   expand?: {
+    club?: Club;
     match?: Match & {
       expand?: {
         homeClub?: Club;

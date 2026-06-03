@@ -126,6 +126,7 @@ export default function ProgressDetailScreen() {
             value={badgesCount} 
             maxValue={badgesTarget} 
             icon="star-sharp" 
+            onPress={() => router.push('/badges')}
           />
 
           {/* Streak */}

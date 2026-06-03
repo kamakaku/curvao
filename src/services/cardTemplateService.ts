@@ -39,6 +39,7 @@ export const rarityConfig: Record<Rarity, Pick<CardVisualConfig, 'accentColor' |
 const typeLabels: Record<CardType, string> = {
   match: 'Match Card',
   player: 'Player Card',
+  club: 'Club Card',
   patch: 'Patch',
   stadium: 'Stadium',
   moment: 'Moment',
@@ -146,6 +147,7 @@ export function formatMatch(match?: {
 }
 
 export function getCardRelations(card: UserCard) {
+  const club = card.expand?.club;
   const player = card.expand?.player;
   const match = card.expand?.match;
   const stadium = card.expand?.stadium ?? match?.expand?.stadium;
@@ -155,6 +157,7 @@ export function getCardRelations(card: UserCard) {
   const stadiumClub = stadium?.expand?.club;
 
   return {
+    club,
     player,
     match,
     stadium,

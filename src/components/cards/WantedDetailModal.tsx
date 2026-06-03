@@ -80,6 +80,7 @@ export function WantedDetailModal({ result, earnPaths, visible, onClose, onToggl
     rarity: result.target.rarityTarget ?? 'standard',
     player: result.target.playerId,
     match: result.target.matchId,
+    club: result.target.clubId,
     stadium: result.target.stadiumId,
     user: 'mock',
     editionNumber: 1,

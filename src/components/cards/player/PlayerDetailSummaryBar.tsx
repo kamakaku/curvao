@@ -106,22 +106,22 @@ const styles = StyleSheet.create({
   singleCard: {
     flexDirection: 'column',
     justifyContent: 'center',
-    minHeight: 74,
+    minHeight: 58,
     paddingHorizontal: 16,
-    paddingVertical: 14,
-    gap: 12,
+    paddingVertical: 10,
+    gap: 8,
     marginBottom: 12,
   },
   singleTopRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-end',
     width: '100%',
   },
   singleTitleContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
+    alignItems: 'flex-end',
+    gap: 8,
   },
   column: {
     alignItems: 'flex-start',
@@ -149,8 +149,9 @@ const styles = StyleSheet.create({
   },
   singleValueCompact: {
     color: COLORS.text,
-    fontSize: 14,
+    fontSize: 28,
     fontWeight: '900',
+    lineHeight: 30,
   },
   valueGold: {
     color: COLORS.gold,
@@ -166,14 +167,14 @@ const styles = StyleSheet.create({
   },
   singleSub: {
     color: COLORS.muted,
-    fontSize: 11,
-    fontWeight: '600',
-    lineHeight: 14,
+    fontSize: 10,
+    fontWeight: '700',
+    lineHeight: 12,
   },
   progressTrack: {
     backgroundColor: COLORS.track,
     borderRadius: 999,
-    height: 6,
+    height: 5,
     overflow: 'hidden',
     width: '100%',
   },

@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useEffect, useState } from 'react';
 
@@ -8,6 +9,7 @@ import { useAuth } from '@/src/providers/AuthProvider';
 
 export function DashboardProgress() {
   const { user } = useAuth();
+  const router = useRouter();
   const [progress, setProgress] = useState<UserProgress | null>(null);
 
   useEffect(() => {
@@ -19,7 +21,7 @@ export function DashboardProgress() {
 
   return (
     <View style={styles.outerContainer}>
-      <Pressable style={({ pressed }) => [styles.header, pressed && styles.pressed]}>
+      <Pressable onPress={() => router.push('/progress')} style={({ pressed }) => [styles.header, pressed && styles.pressed]}>
         <Text style={styles.title}>DEIN FORTSCHRITT</Text>
         <Ionicons name="chevron-forward" size={16} color={curvao.colors.gold} />
       </Pressable>

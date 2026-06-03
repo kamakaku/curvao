@@ -17,7 +17,7 @@ export type EarnAvailability = {
   canClaimCard: boolean;
 };
 
-export type ClaimableCardType = Extract<CardType, 'player' | 'match' | 'stadium'>;
+export type ClaimableCardType = Extract<CardType, 'player' | 'match' | 'stadium' | 'club'>;
 
 export type CreateFanClaimedCardInput = {
   userId: string;
@@ -26,6 +26,7 @@ export type CreateFanClaimedCardInput = {
   playerId?: string;
   matchId?: string;
   stadiumId?: string;
+  clubId?: string;
 };
 
 export type ClaimableEarnItem = {
@@ -36,6 +37,7 @@ export type ClaimableEarnItem = {
   playerId?: string;
   matchId?: string;
   stadiumId?: string;
+  clubId?: string;
 };
 
 const LIVE_WINDOW_BEFORE_MS = 60 * 60 * 1000;

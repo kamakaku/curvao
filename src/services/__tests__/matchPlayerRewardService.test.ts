@@ -72,6 +72,39 @@ describe('MatchPlayerRewardService', () => {
       expect(result.reasons).toContain('Favorite Club');
       expect(result.boosts.favoriteClubBoost).toBe(true);
     });
+
+    it('boosts strong performance scores', () => {
+      const result = scoreMatchPlayerCardCandidate({
+        candidate: { ...baseCandidate, performanceScore: 86, formScore: 78, sportmonksRating: 7.4 },
+        userCards: [],
+        source: 'live_watch'
+      });
+      expect(result.boosts.performanceBoostApplied).toBe(true);
+      expect(result.score).toBeGreaterThan(0);
+      expect(result.performanceReasons).toContain('Performance 86');
+    });
+
+    it('missing performance does not crash', () => {
+      const result = scoreMatchPlayerCardCandidate({
+        candidate: { ...baseCandidate, performanceScore: null, formScore: null, sportmonksRating: null },
+        userCards: [],
+        source: 'live_watch'
+      });
+
+      expect(typeof result.score).toBe('number');
+      expect(result.boosts.performanceBoostApplied).toBe(false);
+    });
+
+    it('performance metadata appears in candidate score result', () => {
+      const result = scoreMatchPlayerCardCandidate({
+        candidate: { ...baseCandidate, performanceScore: 90, formScore: 81, sportmonksRating: 7.8 },
+        userCards: [],
+        source: 'live_watch'
+      });
+
+      expect(result.boosts.performanceBoostApplied).toBe(true);
+      expect(result.performanceReasons).toEqual(expect.arrayContaining(['Performance 90', 'Form 81', 'Rating 7.8']));
+    });
   });
 
   describe('selectStableWeightedCandidate', () => {

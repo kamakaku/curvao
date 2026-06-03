@@ -1,24 +1,22 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View, Dimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CardMoreMenu } from '@/src/components/cards/CardMoreMenu';
-import { PlayerBiographyBoxes } from '@/src/components/cards/player/PlayerBiographyBoxes';
 import { PlayerCardDetailsAccordion } from '@/src/components/cards/player/PlayerCardDetailsAccordion';
 import { PlayerCardHistoryAccordion } from '@/src/components/cards/player/PlayerCardHistoryAccordion';
 import { PlayerConnectionCompact } from '@/src/components/cards/player/PlayerConnectionCompact';
 import { PlayerDetailSummaryBar } from '@/src/components/cards/player/PlayerDetailSummaryBar';
-import { PlayerHighlightMomentCompact } from '@/src/components/cards/player/PlayerHighlightMomentCompact';
 import { TextureOverlay } from '@/src/components/ui/TextureOverlay';
 import { getBondProgress, shareCard, toggleFavorite, upgradeCardBond, copyCardIdToClipboard } from '@/src/services/cardActionService';
 import { getClubCrestSource, getPlayerCardImageSource } from '@/src/services/cardAssetService';
+import { getLatestPlayerPerformance } from '@/src/services/playerPerformanceService';
 import { formatCardOrigin, formatEdition, formatRarity, getCardRelations } from '@/src/services/cardTemplateService';
 import { setMainCard } from '@/src/services/cardService';
-import type { EarnPath } from '@/src/services/wantedCardService';
-import type { UserCard } from '@/src/types/models';
+import type { PlayerMatchPerformance, UserCard } from '@/src/types/models';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const HERO_HEIGHT = (SCREEN_HEIGHT * 3) / 5;
@@ -50,6 +48,14 @@ function formatPosition(position: string) {
   return position;
 }
 
+function formatBiographyPosition(position?: string) {
+  if (position === 'FW') return 'Links Aussen';
+  if (position === 'MF') return 'Mittelfeld';
+  if (position === 'DF') return 'Verteidigung';
+  if (position === 'GK') return 'Torwart';
+  return position || '—';
+}
+
 function getResponsiveHeroBgSize(text: string) {
   const length = Math.max(1, text.length);
   if (length <= 2) return 360;
@@ -73,6 +79,7 @@ export function PlayerHeroDetail({ card, wantedState }: PlayerHeroDetailProps) {
   const [currentCard, setCurrentCard] = useState(card);
   const [actionError, setActionError] = useState<string | undefined>();
   const [isOptionsOpen, setIsOptionsOpen] = useState(false);
+  const [latestPerformance, setLatestPerformance] = useState<PlayerMatchPerformance | null>(null);
   const { player, playerClub } = getCardRelations(currentCard);
   const bondProgress = getBondProgress(currentCard);
   
@@ -150,6 +157,9 @@ export function PlayerHeroDetail({ card, wantedState }: PlayerHeroDetailProps) {
     { label: 'Card ID', value: currentCard.id.toUpperCase() },
     { label: 'Season', value: currentCard.expand?.match?.season || '2025/2026' },
     { label: 'Rarity', value: formatRarity(currentCard.rarity) },
+    { label: 'Position', value: formatBiographyPosition(player?.position) },
+    { label: 'Herkunft', value: player?.nationality || '—' },
+    { label: 'Verein', value: playerClub?.name || '—' },
   ];
   const statusChips = [
     ...(wantedState?.isOwned
@@ -167,6 +177,11 @@ export function PlayerHeroDetail({ card, wantedState }: PlayerHeroDetailProps) {
     ...(currentCard.bound
       ? [{ key: 'bound', icon: 'lock-closed' as const, label: 'Gebunden', tone: 'muted' as const }]
       : []),
+  ];
+  const performanceChips = [
+    ...(latestPerformance?.formScore ? [{ key: 'form', label: 'CURVAO FORM', value: `${Math.round(latestPerformance.formScore)}` }] : []),
+    ...(latestPerformance?.rating ? [{ key: 'rating', label: 'LETZTE NOTE', value: latestPerformance.rating.toFixed(1).replace('.', ',') }] : []),
+    ...(latestPerformance?.minutesPlayed ? [{ key: 'minutes', label: 'LETZTER EINSATZ', value: `${latestPerformance.minutesPlayed} MIN` }] : []),
   ];
   const actionButtons = useMemo(
     () => [
@@ -251,6 +266,20 @@ export function PlayerHeroDetail({ card, wantedState }: PlayerHeroDetailProps) {
       setActionError(error instanceof Error ? error.message : 'Aktion konnte nicht ausgeführt werden.');
     }
   };
+
+  useEffect(() => {
+    let active = true;
+
+    void getLatestPlayerPerformance(currentCard.player).then((performance) => {
+      if (active) {
+        setLatestPerformance(performance);
+      }
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [currentCard.player]);
 
   return (
     <>
@@ -391,7 +420,16 @@ export function PlayerHeroDetail({ card, wantedState }: PlayerHeroDetailProps) {
 
           <PlayerConnectionCompact items={connectionItems} />
 
-          <PlayerBiographyBoxes card={currentCard} />
+          {performanceChips.length ? (
+            <View style={styles.performanceChipRow}>
+              {performanceChips.map((chip) => (
+                <View key={chip.key} style={styles.performanceChip}>
+                  <Text style={styles.performanceChipLabel}>{chip.label}</Text>
+                  <Text style={styles.performanceChipValue}>{chip.value}</Text>
+                </View>
+              ))}
+            </View>
+          ) : null}
 
           <PlayerCardDetailsAccordion rows={detailRows} />
           <PlayerCardHistoryAccordion cardId={currentCard.id} />
@@ -770,6 +808,35 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '800',
     marginTop: -2,
+  },
+  performanceChipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 12,
+    paddingHorizontal: 20,
+  },
+  performanceChip: {
+    backgroundColor: '#16181A',
+    borderColor: 'rgba(216,170,77,0.18)',
+    borderRadius: 999,
+    borderWidth: 1,
+    minHeight: 38,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  performanceChipLabel: {
+    color: HERO_COLORS.muted,
+    fontSize: 9,
+    fontWeight: '900',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+  },
+  performanceChipValue: {
+    color: HERO_COLORS.text,
+    fontSize: 13,
+    fontWeight: '900',
+    marginTop: 2,
   },
   sectionHeader: {
     alignItems: 'center',

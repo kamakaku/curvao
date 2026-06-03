@@ -33,7 +33,7 @@ import type { UserCard } from '@/src/types/models';
 const sections = ['Sammlung', 'Sets', 'Gesucht', 'Archiv'] as const;
 type Section = (typeof sections)[number];
 
-const filters = ['Alle', 'Match', 'Player', 'Stadium', 'Patch', 'Verdient', 'Getauscht', 'Gebunden'] as const;
+const filters = ['Alle', 'Match', 'Player', 'Club', 'Stadium', 'Patch', 'Verdient', 'Getauscht', 'Gebunden'] as const;
 type Filter = (typeof filters)[number];
 const setFilters = ['Alle', 'Club Season', 'Matchday', 'Stadium', 'Moment', 'Special'] as const;
 type SetFilter = (typeof setFilters)[number];
@@ -49,6 +49,8 @@ function matchesFilter(card: UserCard, filter: Filter) {
       return card.type === 'match';
     case 'Player':
       return card.type === 'player';
+    case 'Club':
+      return card.type === 'club';
     case 'Stadium':
       return card.origin === 'stadium_verified' || card.type === 'stadium';
     case 'Patch':

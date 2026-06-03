@@ -1,6 +1,6 @@
 import { Tabs, Redirect } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useEffect } from 'react';
+import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { HapticTab } from '@/components/haptic-tab';
@@ -12,7 +12,6 @@ import { useAuth } from '@/src/providers/AuthProvider';
 
 export default function TabLayout() {
   const { user, isInitialized, isLoading } = useAuth();
-  const router = useRouter();
 
   if (!isInitialized || isLoading) {
     return <View style={{ flex: 1, backgroundColor: '#000' }} />;
@@ -124,6 +123,12 @@ export default function TabLayout() {
         />
         <Tabs.Screen
           name="progress/index"
+          options={{
+            href: null,
+          }}
+        />
+        <Tabs.Screen
+          name="badges/index"
           options={{
             href: null,
           }}

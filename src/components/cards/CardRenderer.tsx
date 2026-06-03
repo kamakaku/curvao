@@ -1,3 +1,4 @@
+import { ClubCardView } from '@/src/components/cards/ClubCardView';
 import { GenericFallbackCardView } from '@/src/components/cards/GenericCardFrame';
 import { MatchCardView } from '@/src/components/cards/MatchCardView';
 import { PatchCardView } from '@/src/components/cards/PatchCardView';
@@ -17,6 +18,8 @@ type CardRendererProps = {
 
 export function CardRenderer({ card, compact, playerSize, isFlipped, wantedState, earnPaths }: CardRendererProps) {
   switch (card.type) {
+    case 'club':
+      return <ClubCardView card={card} compact={compact} size={playerSize} isFlipped={isFlipped} wantedState={wantedState} earnPaths={earnPaths} />;
     case 'match':
       return <MatchCardView card={card} compact={compact} size={playerSize} isFlipped={isFlipped} wantedState={wantedState} earnPaths={earnPaths} />;
     case 'player':

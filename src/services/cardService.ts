@@ -30,7 +30,7 @@ export async function getUserCards(userId: string): Promise<UserCard[]> {
   return await tryPocketBase(
     async () =>
       pb.collection('user_cards').getFullList<UserCard>({
-        expand: 'template,player,player.club,match,match.homeClub,match.awayClub,match.stadium,match.stadium.club,stadium,stadium.club',
+        expand: 'template,club,player,player.club,match,match.homeClub,match.awayClub,match.stadium,match.stadium.club,stadium,stadium.club',
         filter: `user = "${userId}"`,
         sort: '-acquiredAt',
       }),

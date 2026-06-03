@@ -1,6 +1,6 @@
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { CurvaoScreen } from '@/src/components/CurvaoScreen';
 import { StatPill } from '@/src/components/StatPill';
@@ -21,6 +21,7 @@ const emptyStats: FanStats = {
 };
 
 export default function PassScreen() {
+  const router = useRouter();
   const [stats, setStats] = useState<FanStats>(emptyStats);
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [unlocked, setUnlocked] = useState<UserAchievement[]>([]);
@@ -61,7 +62,10 @@ export default function PassScreen() {
         <StatPill label="Achievements" value={stats.achievements} />
       </View>
 
-      <Text style={styles.section}>Achievements</Text>
+      <Pressable style={styles.sectionRow} onPress={() => router.push('/badges')}>
+        <Text style={styles.section}>Achievements</Text>
+        <Text style={styles.sectionLink}>ALLE BADGES</Text>
+      </Pressable>
       {achievements.map((achievement) => (
         <View key={achievement.id} style={styles.achievement}>
           <Text style={styles.achievementName}>{achievement.name}</Text>
@@ -91,6 +95,18 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '800',
     marginTop: 8,
+  },
+  sectionRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 8,
+  },
+  sectionLink: {
+    color: curvao.colors.gold,
+    fontSize: 12,
+    fontWeight: '900',
+    letterSpacing: 1.1,
   },
   achievement: {
     alignItems: 'center',

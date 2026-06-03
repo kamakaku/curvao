@@ -1,9 +1,10 @@
 import { getMatchPlayers, getMatchEvents } from '@/src/services/matchService';
+import { getPlayerMatchPerformancesByMatch } from '@/src/services/playerPerformanceService';
 import { getUserCards } from '@/src/services/cardService';
 import { getWantedCards, type WantedCard } from '@/src/services/wantedCardService';
 import { getMatchdaySetPreview } from '@/src/services/cardSetService';
 import { pb } from '@/src/services/pocketbase';
-import { UserCard, CardTemplate } from '../types/models';
+import { type UserCard, type CardTemplate, type PlayerMatchPerformance } from '../types/models';
 import { SetProgress } from '../utils/setProgressUtils';
 
 export type MatchPlayerCandidate = {
@@ -13,7 +14,7 @@ export type MatchPlayerCandidate = {
   started?: boolean;
   substitutedIn?: boolean;
   playedMinutes?: number;
-  events?: Array<
+  events?: (
     | 'goal'
     | 'assist'
     | 'mvp'
@@ -22,9 +23,12 @@ export type MatchPlayerCandidate = {
     | 'yellow_card'
     | 'red_card'
     | 'special_moment'
-  >;
+  )[];
   cardTemplateId?: string;
   cardTemplate?: CardTemplate;
+  performanceScore?: number | null;
+  formScore?: number | null;
+  sportmonksRating?: number | null;
 };
 
 export type ScoredCandidate = MatchPlayerCandidate & {
@@ -32,6 +36,7 @@ export type ScoredCandidate = MatchPlayerCandidate & {
   reasons?: string[];
   penalties?: string[];
   boosts?: any;
+  performanceReasons?: string[];
 };
 
 /**
@@ -74,18 +79,25 @@ export function selectStableWeightedCandidate(input: {
 /**
  * Fetches the reward pool of players who actually participated in the match.
  */
-export async function getMatchPlayerRewardPool(input: {
+export type MatchPlayerRewardPoolInput = {
   matchId: string;
   includeStarters?: boolean;
   includeSubstitutes?: boolean;
   includeEventPlayers?: boolean;
-}): Promise<MatchPlayerCandidate[]> {
-  const { matchId } = input;
+};
+
+export async function getMatchPlayerRewardPool(
+  input: MatchPlayerRewardPoolInput | string,
+): Promise<MatchPlayerCandidate[]> {
+  const normalizedInput: MatchPlayerRewardPoolInput =
+    typeof input === 'string' ? { matchId: input } : input;
+  const { matchId } = normalizedInput;
   
   try {
-    const [matchPlayers, matchEvents, allTemplates] = await Promise.all([
+    const [matchPlayers, matchEvents, matchPerformances, allTemplates] = await Promise.all([
       getMatchPlayers(matchId),
       getMatchEvents(matchId),
+      getPlayerMatchPerformancesByMatch(matchId).catch(() => []),
       pb.collection('card_templates').getFullList<CardTemplate>({
           filter: 'active = true && type = "player"',
       })
@@ -94,22 +106,33 @@ export async function getMatchPlayerRewardPool(input: {
     const candidates: Map<string, MatchPlayerCandidate> = new Map();
 
     // 1. Process Match Players (Lineup)
+    const performanceByPlayerId = new Map<string, PlayerMatchPerformance>();
+    matchPerformances?.forEach((performance) => {
+      performanceByPlayerId.set(performance.player, performance);
+    });
+
     matchPlayers.forEach(mp => {
         const played = mp.started || (mp.minuteIn !== undefined && mp.minuteIn > 0);
         if (!played) return;
 
+        const performance = performanceByPlayerId.get(mp.player);
+
         candidates.set(mp.player, {
             playerId: mp.player,
             clubId: mp.club,
+            teamSide: mp.teamSide,
             started: mp.started,
-            substitutedIn: !mp.started && mp.minuteIn !== undefined,
-            playedMinutes: mp.minuteOut ? (mp.minuteOut - (mp.minuteIn || 0)) : (mp.started ? 90 : 0),
+            substitutedIn: mp.substitutedIn ?? (!mp.started && mp.minuteIn !== undefined),
+            playedMinutes: performance?.minutesPlayed ?? mp.minutesPlayed ?? (mp.minuteOut ? (mp.minuteOut - (mp.minuteIn || 0)) : (mp.started ? 90 : 0)),
             events: [],
+            performanceScore: performance?.performanceScore ?? performance?.curvaoScore ?? null,
+            formScore: performance?.formScore ?? null,
+            sportmonksRating: performance?.rating ?? null,
         });
     });
 
     // 2. Process Match Events
-    matchEvents.forEach(event => {
+      matchEvents.forEach(event => {
         if (!event.player) return;
         
         let cand = candidates.get(event.player);
@@ -126,9 +149,14 @@ export async function getMatchPlayerRewardPool(input: {
     });
 
     // 3. Attach Templates
+    const templateByKey = new Map<string, CardTemplate>();
+    allTemplates.forEach((template) => {
+      if (template.key) templateByKey.set(template.key, template);
+    });
+
     const pool: MatchPlayerCandidate[] = [];
     candidates.forEach(cand => {
-        const template = allTemplates.find(t => t.key === `player_${cand.playerId}` || t.name.includes(cand.playerId)); 
+        const template = templateByKey.get(`player_${cand.playerId}`);
         if (template) {
             cand.cardTemplateId = template.id;
             cand.cardTemplate = template;
@@ -153,7 +181,7 @@ export function scoreMatchPlayerCardCandidate(input: {
   setProgress?: SetProgress;
   favoriteClubId?: string;
   source: 'live_watch' | 'stadium_checkin' | 'fan_five';
-}): { score: number, reasons: string[], penalties: string[], boosts: any } {
+}): { score: number, reasons: string[], penalties: string[], boosts: any, performanceReasons: string[] } {
   const { candidate, userCards, wantedCards, setProgress, favoriteClubId } = input;
   let score = 0;
   const reasons: string[] = [];
@@ -164,9 +192,11 @@ export function scoreMatchPlayerCardCandidate(input: {
     wantedSignal: false,
     favoriteClubBoost: false,
     notOwnedBoost: false,
+    performanceBoostApplied: false,
   };
+  const performanceReasons: string[] = [];
 
-  if (!candidate.cardTemplate) return { score: -1000, reasons, penalties, boosts };
+  if (!candidate.cardTemplate) return { score: -1000, reasons, penalties, boosts, performanceReasons };
 
   // Performance Boosts
   if (candidate.events?.some((e: string) => e === 'special_moment' || e === 'mvp')) { score += 60; reasons.push('MVP/Special Moment'); boosts.eventBoost = true; }
@@ -175,6 +205,37 @@ export function scoreMatchPlayerCardCandidate(input: {
   if (candidate.substitutedIn) { score += 30; reasons.push('Substituted In'); }
   if ((candidate.playedMinutes || 0) >= 60) { score += 10; reasons.push('Played 60+ mins'); }
   if (candidate.events?.some((e: string) => e === 'clean_sheet' || e === 'save')) { score += 10; reasons.push('Clean Sheet/Save'); }
+
+  if ((candidate.performanceScore ?? 0) >= 85) {
+    score += 20;
+    reasons.push('Top Performance');
+    boosts.performanceBoostApplied = true;
+    performanceReasons.push(`Performance ${candidate.performanceScore}`);
+  } else if ((candidate.performanceScore ?? 0) >= 75) {
+    score += 15;
+    reasons.push('Starke Performance');
+    boosts.performanceBoostApplied = true;
+    performanceReasons.push(`Performance ${candidate.performanceScore}`);
+  } else if ((candidate.performanceScore ?? 0) >= 65) {
+    score += 10;
+    reasons.push('Solide Performance');
+    boosts.performanceBoostApplied = true;
+    performanceReasons.push(`Performance ${candidate.performanceScore}`);
+  }
+
+  if ((candidate.formScore ?? 0) >= 75) {
+    score += 10;
+    reasons.push('Starke Form');
+    boosts.performanceBoostApplied = true;
+    performanceReasons.push(`Form ${candidate.formScore}`);
+  }
+
+  if ((candidate.sportmonksRating ?? 0) >= 7) {
+    score += 5;
+    reasons.push('Solide Note');
+    boosts.performanceBoostApplied = true;
+    performanceReasons.push(`Rating ${candidate.sportmonksRating}`);
+  }
 
   // User Context Boosts
   const alreadyOwned = userCards.some(c => c.template === candidate.cardTemplateId);
@@ -198,7 +259,7 @@ export function scoreMatchPlayerCardCandidate(input: {
   );
   if (isWanted) { score += 8; reasons.push('Wanted Card'); boosts.wantedSignal = true; }
 
-  return { score, reasons, penalties, boosts };
+  return { score, reasons, penalties, boosts, performanceReasons };
 }
 
 /**
@@ -235,6 +296,7 @@ export async function selectPersonalizedRewardCards(input: {
             reasons: result.reasons,
             penalties: result.penalties,
             boosts: result.boosts,
+            performanceReasons: result.performanceReasons,
         };
     }).filter(c => c.score > -500);
 
@@ -250,6 +312,11 @@ export async function selectPersonalizedRewardCards(input: {
         score: c.score,
         reasons: c.reasons,
         penalties: c.penalties,
+        performanceScore: c.performanceScore,
+        formScore: c.formScore,
+        sportmonksRating: c.sportmonksRating,
+        performanceReasons: c.performanceReasons,
+        performanceBoostApplied: c.boosts?.performanceBoostApplied ?? false,
     }));
 
     if (selected?.cardTemplate) {
@@ -258,6 +325,11 @@ export async function selectPersonalizedRewardCards(input: {
             metadata: {
                 selectedPlayerId: selected.playerId,
                 selectedTemplateId: selected.cardTemplateId,
+                performanceScore: selected.performanceScore,
+                formScore: selected.formScore,
+                sportmonksRating: selected.sportmonksRating,
+                performanceBoostApplied: selected.boosts?.performanceBoostApplied ?? false,
+                performanceReasons: selected.performanceReasons ?? [],
                 selectionReason: 'Highest scored candidate based on performance and user context',
                 source,
                 matchId,

@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useState } from 'react';
+import { type ReactNode, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 const COLORS = {
@@ -16,7 +16,13 @@ type Row = {
   value: string;
 };
 
-export function PlayerCardDetailsAccordion({ rows }: { rows: Row[] }) {
+export function PlayerCardDetailsAccordion({
+  rows,
+  children,
+}: {
+  rows: Row[];
+  children?: ReactNode;
+}) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -36,6 +42,7 @@ export function PlayerCardDetailsAccordion({ rows }: { rows: Row[] }) {
               <Text numberOfLines={1} style={styles.value}>{row.value}</Text>
             </View>
           ))}
+          {children ? <View style={styles.extraContent}>{children}</View> : null}
         </View>
       ) : null}
     </View>
@@ -84,6 +91,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     paddingHorizontal: 16,
     paddingVertical: 12,
+  },
+  extraContent: {
+    borderTopColor: 'rgba(255,255,255,0.05)',
+    borderTopWidth: 1,
+    marginTop: 8,
+    paddingTop: 12,
   },
   row: {
     alignItems: 'center',

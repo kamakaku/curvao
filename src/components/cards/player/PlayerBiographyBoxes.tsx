@@ -3,7 +3,6 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { getCardRelations } from '@/src/services/cardTemplateService';
-import { curvao } from '@/src/theme/curvaoTheme';
 import type { UserCard } from '@/src/types/models';
 
 const BOX_COLORS = {
@@ -76,8 +75,8 @@ export function PlayerBiographyBoxes({ card }: { card: UserCard }) {
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 20,
-    marginTop: 24,
+    paddingHorizontal: 0,
+    marginTop: 0,
     gap: 12,
   },
   sectionTitle: {

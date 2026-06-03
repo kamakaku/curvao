@@ -1,5 +1,4 @@
 import { checkAchievements } from '@/src/services/achievementService';
-import { getMatchById } from '@/src/services/matchService';
 import { pb } from '@/src/services/pocketbase';
 import {
   createRewardEvent,
@@ -8,7 +7,6 @@ import {
   selectRewardCardTemplate,
 } from '@/src/services/rewardEngineService';
 import { REWARD_ECONOMY_CONFIG } from '@/src/config/rewardEconomy';
-import type { RewardEvent, UserCard } from '@/src/types/models';
 import type { RewardSource, PackageReward, RewardPackageOpenResult } from '@/src/types/rewards';
 
 export * from '@/src/types/rewards';
@@ -32,17 +30,25 @@ export type RewardPackage = {
 
 const COLLECTION = 'reward_packages';
 let rewardPackagesReadable: boolean | undefined;
+let rewardPackagesFilterable: boolean | undefined;
 
 export async function getUnopenedRewardPackages(userId: string): Promise<RewardPackage[]> {
   if (!(await canReadRewardPackages())) return [];
+  if (rewardPackagesFilterable === false) {
+    return getUnopenedRewardPackagesFallback(userId);
+  }
   try {
     const records = await pb.collection(COLLECTION).getFullList({
       filter: `user = "${userId}" && status = "unopened"`,
       sort: '-createdAt',
     });
+    rewardPackagesFilterable = true;
     return records.map(fromRecord);
-  } catch {
-    return [];
+  } catch (error) {
+    if (isBadRewardPackageQuery(error)) {
+      rewardPackagesFilterable = false;
+    }
+    return getUnopenedRewardPackagesFallback(userId);
   }
 }
 
@@ -50,6 +56,7 @@ export async function getRewardPackage(packageId: string, userId?: string): Prom
   if (!(await canReadRewardPackages())) return null;
   try {
     const record = await pb.collection(COLLECTION).getOne(packageId);
+    if (!hasRewardPackageFields(record)) return null;
     const rewardPackage = fromRecord(record);
     if (userId && rewardPackage.userId !== userId) return null;
     return rewardPackage;
@@ -64,14 +71,23 @@ export async function getRewardPackageForMatch(input: {
   sourceType: RewardSource;
 }): Promise<RewardPackage | null> {
   if (!(await canReadRewardPackages())) return null;
+  if (rewardPackagesFilterable === false) {
+    const fallbackPackages = await getRewardPackageRecordsFallback();
+    return filterRewardPackagesForMatch(fallbackPackages, input)[0] ?? null;
+  }
   try {
     const records = await pb.collection(COLLECTION).getFullList({
       filter: `user = "${input.userId}" && sourceType = "${input.sourceType}" && match = "${input.matchId}"`,
       sort: '-createdAt',
     });
+    rewardPackagesFilterable = true;
     return records[0] ? fromRecord(records[0]) : null;
-  } catch {
-    return null;
+  } catch (error) {
+    if (isBadRewardPackageQuery(error)) {
+      rewardPackagesFilterable = false;
+    }
+    const fallbackPackages = await getRewardPackageRecordsFallback();
+    return filterRewardPackagesForMatch(fallbackPackages, input)[0] ?? null;
   }
 }
 
@@ -284,4 +300,56 @@ async function canReadRewardPackages() {
     rewardPackagesReadable = false;
   }
   return rewardPackagesReadable;
+}
+
+async function getUnopenedRewardPackagesFallback(userId: string): Promise<RewardPackage[]> {
+  const packages = await getRewardPackageRecordsFallback();
+  return sortRewardPackages(
+    packages.filter((rewardPackage) => rewardPackage.userId === userId && rewardPackage.status === 'unopened'),
+  );
+}
+
+async function getRewardPackageRecordsFallback(): Promise<RewardPackage[]> {
+  try {
+    const result = await pb.collection(COLLECTION).getList(1, 200, {
+      skipTotal: true,
+    });
+    return result.items.filter(hasRewardPackageFields).map(fromRecord);
+  } catch {
+    return [];
+  }
+}
+
+function hasRewardPackageFields(record: any) {
+  return Boolean(
+    record &&
+      typeof record === 'object' &&
+      ('user' in record || 'status' in record || 'sourceType' in record || 'createdAt' in record || 'match' in record),
+  );
+}
+
+function isBadRewardPackageQuery(error: any) {
+  return error?.status === 400;
+}
+
+function sortRewardPackages(packages: RewardPackage[]) {
+  return [...packages].sort((left, right) => {
+    const leftTime = left.createdAt ? new Date(left.createdAt).getTime() : 0;
+    const rightTime = right.createdAt ? new Date(right.createdAt).getTime() : 0;
+    return rightTime - leftTime;
+  });
+}
+
+function filterRewardPackagesForMatch(
+  packages: RewardPackage[],
+  input: { userId: string; matchId: string; sourceType: RewardSource },
+) {
+  return sortRewardPackages(
+    packages.filter(
+      (rewardPackage) =>
+        rewardPackage.userId === input.userId &&
+        rewardPackage.matchId === input.matchId &&
+        rewardPackage.sourceType === input.sourceType,
+    ),
+  );
 }

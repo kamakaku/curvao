@@ -150,7 +150,7 @@ function buildTimelineEvents(match: Match, matchEvents?: MatchEvent[]): Timeline
       const leftMinute = left.minute ?? 999;
       const rightMinute = right.minute ?? 999;
       if (leftMinute !== rightMinute) {
-        return leftMinute - rightMinute;
+        return rightMinute - leftMinute;
       }
       return getEventPriority(left.type) - getEventPriority(right.type);
     });
@@ -213,7 +213,7 @@ function buildTimelineEvents(match: Match, matchEvents?: MatchEvent[]): Timeline
     });
   }
 
-  return events.sort((left, right) => (left.minute ?? 0) - (right.minute ?? 0));
+  return events.sort((left, right) => (right.minute ?? 0) - (left.minute ?? 0));
 }
 
 function normalizeGoalScorers(scorers: string[] | undefined, side: 'home' | 'away', clubName: string) {

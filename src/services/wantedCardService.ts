@@ -47,7 +47,7 @@ export type WantedCardTarget = {
 
 export type CardSearchResult = {
   id: string;
-  type: 'player' | 'stadium' | 'match' | 'special';
+  type: 'player' | 'stadium' | 'match' | 'club' | 'special';
   title: string;
   subtitle: string;
   badge?: string;
@@ -83,6 +83,14 @@ type PocketBaseWantedCard = {
 };
 
 type SearchEntry = CardSearchResult & { score: number };
+
+function getWantedCreatedAt(record: PocketBaseWantedCard | WantedCard) {
+  return ('createdAt' in record ? record.createdAt : record.created) ?? '';
+}
+
+function sortWantedCardsNewestFirst<T extends WantedCard>(items: T[]) {
+  return [...items].sort((a, b) => getWantedCreatedAt(b).localeCompare(getWantedCreatedAt(a)));
+}
 
 function fromPocketBase(record: PocketBaseWantedCard & { expand?: any }): WantedCard {
   return {
@@ -127,6 +135,7 @@ function getWantedKey(input: Pick<WantedCard, 'targetType' | 'cardTemplateId' | 
     input.targetType === 'match' ? (input.matchId ?? '') : '',
     input.targetType === 'stadium' ? (input.stadiumId ?? '') : '',
     input.targetType === 'set' ? (input.setId ?? '') : '',
+    input.targetType === 'club' ? ((input as WantedCard).clubId ?? '') : '',
   ].join(':');
 }
 
@@ -138,6 +147,7 @@ function getTargetKey(input: Pick<WantedCardTarget, 'targetType' | 'cardTemplate
     input.targetType === 'match' ? (input.matchId ?? '') : '',
     input.targetType === 'stadium' ? (input.stadiumId ?? '') : '',
     input.targetType === 'set' ? (input.setId ?? '') : '',
+    input.targetType === 'club' ? (input.clubId ?? '') : '',
   ].join(':');
 }
 
@@ -146,8 +156,9 @@ function matchesWantedTarget(card: UserCard, wanted: WantedCard) {
   if (wanted.playerId && card.player === wanted.playerId) return true;
   if (wanted.matchId && card.match === wanted.matchId && wanted.targetType === card.type) return true;
   if (wanted.stadiumId && card.stadium === wanted.stadiumId) return true;
+  if (wanted.clubId && (card.club === wanted.clubId || card.expand?.club?.id === wanted.clubId) && wanted.targetType === card.type) return true;
   if (wanted.targetType === card.type) {
-    if (wanted.playerId || wanted.matchId || wanted.stadiumId || wanted.cardTemplateId) return false;
+    if (wanted.playerId || wanted.matchId || wanted.stadiumId || wanted.clubId || wanted.cardTemplateId) return false;
     return true;
   }
   return false;
@@ -179,6 +190,8 @@ function getTemplateBadge(template: CardTemplate) {
       return 'Stadium Card';
     case 'player':
       return 'Player Card';
+    case 'club':
+      return 'Club Card';
     default:
       return 'Special Card';
   }
@@ -200,7 +213,7 @@ export function isWantedTargetOwned(wantedCard: WantedCard, userCards: UserCard[
 }
 
 export function isTargetOwned(target: WantedCardTarget, userCards: UserCard[]) {
-  if (target.targetType === 'club' || target.targetType === 'set') return false;
+  if (target.targetType === 'set') return false;
   return isWantedTargetOwned({ ...target, id: 'target', userId: '', createdAt: new Date().toISOString() }, userCards);
 }
 
@@ -209,7 +222,15 @@ export function isTargetWanted(target: WantedCardTarget, wantedCards: WantedCard
 }
 
 export function wantedCardToSearchResult(wantedCard: WantedCard, userCards: UserCard[]): CardSearchResult {
-  const type = wantedCard.targetType === 'player' ? 'player' : wantedCard.targetType === 'match' ? 'match' : wantedCard.targetType === 'stadium' ? 'stadium' : 'special';
+  const type = wantedCard.targetType === 'player'
+    ? 'player'
+    : wantedCard.targetType === 'match'
+      ? 'match'
+      : wantedCard.targetType === 'stadium'
+        ? 'stadium'
+        : wantedCard.targetType === 'club'
+          ? 'club'
+          : 'special';
   const target: WantedCardTarget = {
     targetType: wantedCard.targetType,
     cardTemplateId: wantedCard.cardTemplateId,
@@ -241,7 +262,7 @@ export function wantedCardToMockUserCard(wantedCard: WantedCard): UserCard {
   return {
     id: `mock-${wantedCard.id}`,
     user: wantedCard.userId,
-    type: wantedCard.targetType === 'player' ? 'player' : wantedCard.targetType === 'match' ? 'match' : wantedCard.targetType === 'stadium' ? 'stadium' : 'patch',
+    type: wantedCard.targetType === 'player' ? 'player' : wantedCard.targetType === 'match' ? 'match' : wantedCard.targetType === 'stadium' ? 'stadium' : wantedCard.targetType === 'club' ? 'club' : 'patch',
     title: wantedCard.note || wantedCard.expand?.player?.displayName || wantedCard.expand?.club?.name || 'Wanted Card',
     rarity: wantedCard.rarityTarget || 'standard',
     origin: 'self_earned',
@@ -256,6 +277,7 @@ export function wantedCardToMockUserCard(wantedCard: WantedCard): UserCard {
     template: wantedCard.cardTemplateId,
     player: wantedCard.playerId,
     match: wantedCard.matchId,
+    club: wantedCard.clubId,
     stadium: wantedCard.stadiumId,
     expand: wantedCard.expand,
   };
@@ -265,7 +287,7 @@ export function wantedTargetToMockUserCard(target: WantedCardTarget): UserCard {
   return {
     id: `mock-${target.cardTemplateId || target.playerId || target.matchId || target.clubId || target.stadiumId || 'target'}`,
     user: 'mock',
-    type: target.targetType === 'player' ? 'player' : target.targetType === 'match' ? 'match' : target.targetType === 'stadium' ? 'stadium' : 'patch',
+    type: target.targetType === 'player' ? 'player' : target.targetType === 'match' ? 'match' : target.targetType === 'stadium' ? 'stadium' : target.targetType === 'club' ? 'club' : 'patch',
     title: target.note || target.player?.displayName || target.club?.name || 'Wanted Card',
     rarity: target.rarityTarget || 'standard',
     origin: 'self_earned',
@@ -280,8 +302,10 @@ export function wantedTargetToMockUserCard(target: WantedCardTarget): UserCard {
     template: target.cardTemplateId,
     player: target.playerId,
     match: target.matchId,
+    club: target.clubId,
     stadium: target.stadiumId,
     expand: {
+      club: target.club,
       player: target.player ? ({ ...target.player, expand: { club: target.club } } as any) : undefined,
       match: target.match ? ({ ...target.match, expand: { homeClub: target.club } } as any) : undefined,
       stadium: target.stadium ? ({ ...target.stadium, expand: { club: target.club } } as any) : undefined,
@@ -309,21 +333,22 @@ export async function getWantedCards(userId: string): Promise<WantedCard[]> {
   if (!userId) return [];
   
   try {
-    // 1. Primary attempt: Standard filtered fetch
+    // 1. Primary attempt: Standard filtered fetch without server-side sort
     const records = await pb.collection('wanted_cards').getFullList<PocketBaseWantedCard>({
       filter: `user = "${userId}"`,
       expand: 'player,player.club,stadium,match,match.homeClub,match.awayClub',
-      sort: '-created',
+      requestKey: null,
     });
-    return records.map(fromPocketBase);
+    return sortWantedCardsNewestFirst(records.map(fromPocketBase));
   } catch (error: any) {
-    console.warn('[WantedCardService] Filtered fetch failed (400), trying fallback fetch...', error.message);
+    console.warn('[WantedCardService] Filtered fetch failed, trying fallback fetch...', error.message);
     
     try {
       // 2. Fallback: Fetch everything (limited to 500) and filter locally
       // This works even if the 'user' field is not filterable via API
       const result = await pb.collection('wanted_cards').getList<PocketBaseWantedCard>(1, 500, {
           expand: 'player,player.club,stadium,match,match.homeClub,match.awayClub',
+          requestKey: null,
       });
       
       const filtered = result.items.filter(item => {
@@ -331,8 +356,8 @@ export async function getWantedCards(userId: string): Promise<WantedCard[]> {
         return u === userId || (u && typeof u === 'object' && u.id === userId);
       });
       
-      return filtered.map(fromPocketBase);
-    } catch (e) {
+      return sortWantedCardsNewestFirst(filtered.map(fromPocketBase));
+    } catch {
       console.error('[WantedCardService] All fetch attempts failed.');
       return [];
     }
@@ -358,7 +383,7 @@ export async function toggleWantedCard(input: WantedCardInput): Promise<{ wanted
   let wantedCards: WantedCard[] = [];
   try {
     wantedCards = await getWantedCards(input.userId);
-  } catch (error) {
+  } catch {
     console.warn('[WantedCardService] Could not fetch existing wanted cards, proceeding with create attempt.');
   }
   
@@ -454,6 +479,31 @@ export async function searchWantedTargets(query: string, userCards: UserCard[], 
     })
     .filter((item) => item !== null) as SearchEntry[];
 
+  const clubResults: SearchEntry[] = clubs
+    .map((club) => {
+      const score = searchScore([club.name, club.shortName, club.city, club.country], normalizedQuery);
+      if (score === 0) return null;
+
+      const target: WantedCardTarget = {
+        targetType: 'club',
+        clubId: club.id,
+        club,
+      };
+
+      return {
+        id: `club-${club.id}`,
+        type: 'club',
+        title: club.name,
+        subtitle: `Club Card${club.city ? ` · ${club.city}` : ''}`,
+        badge: 'Club Card',
+        target,
+        owned: isTargetOwned(target, userCards),
+        wanted: isTargetWanted(target, wantedCards),
+        score: score + 22,
+      };
+    })
+    .filter((item) => item !== null) as SearchEntry[];
+
   const matchResults: SearchEntry[] = matches
     .map((match) => {
       const homeClub = clubMap.get(match.homeClub);
@@ -491,6 +541,7 @@ export async function searchWantedTargets(query: string, userCards: UserCard[], 
 
   const templateResults: SearchEntry[] = templates
     .map((template) => {
+      if (template.type === 'club') return null;
       const score = searchScore([template.name, template.type, template.rarity, template.description], normalizedQuery);
       if (score === 0) return null;
 
@@ -515,7 +566,7 @@ export async function searchWantedTargets(query: string, userCards: UserCard[], 
     })
     .filter((item) => item !== null) as SearchEntry[];
 
-  return [...playerResults, ...stadiumResults, ...matchResults, ...templateResults]
+  return [...playerResults, ...clubResults, ...stadiumResults, ...matchResults, ...templateResults]
     .sort((left, right) => right.score - left.score || left.title.localeCompare(right.title, 'de'))
     .map(({ score: _score, ...result }) => result);
 }

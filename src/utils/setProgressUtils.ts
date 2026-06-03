@@ -85,7 +85,14 @@ export function findMatchingUserCard(slot: CardSetSlot, userCards: UserCard[]) {
 
 export function matchUserCardToSlot(card: UserCard, slot: CardSetSlot) {
   const sourceMatch = getStringField(card, 'sourceMatch');
-  const clubId = getStringField(card, 'clubId') || card.expand?.player?.club || card.expand?.stadium?.club || card.expand?.match?.homeClub || card.expand?.match?.awayClub;
+  const clubId =
+    getStringField(card, 'clubId') ||
+    card.club ||
+    card.expand?.club?.id ||
+    card.expand?.player?.club ||
+    card.expand?.stadium?.club ||
+    card.expand?.match?.homeClub ||
+    card.expand?.match?.awayClub;
 
   if (slot.cardTemplateId && (card.template === slot.cardTemplateId || getStringField(card, 'cardTemplateId') === slot.cardTemplateId)) return true;
   if (slot.playerId && (card.player === slot.playerId || getStringField(card, 'playerId') === slot.playerId)) return true;
